@@ -55,18 +55,29 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Servir arquivos estáticos de uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-const mysqlConfig = () => ({
-  host: process.env.MYSQL_HOST,
-  port: Number(process.env.MYSQL_PORT || 3306),
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE,
-});
+const mysqlConfig = () => {
+  // Usa MYSQL_URL se disponível (Railway injeta automaticamente)
+  if (process.env.MYSQL_URL) {
+    return process.env.MYSQL_URL;
+  }
+  return {
+    host: process.env.MYSQL_HOST,
+    port: Number(process.env.MYSQL_PORT || 3306),
+    user: process.env.MYSQL_USER,
+    password: process.env.MYSQL_PASSWORD,
+    database: process.env.MYSQL_DATABASE,
+  };
+};
 
 // Bloco 2: Função para Conectar ao Banco de Dados
 const connectDatabase = async () => {
   const cfg = mysqlConfig();
-  if (!cfg.host || !cfg.user || cfg.password === undefined || !cfg.database) {
+  if (!cfg) {
+    throw new Error(
+      'BACKEND: Defina MYSQL_URL ou MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD e MYSQL_DATABASE.'
+    );
+  }
+  if (typeof cfg === 'object' && (!cfg.host || !cfg.user || cfg.password === undefined || !cfg.database)) {
     throw new Error(
       'BACKEND: Defina MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD e MYSQL_DATABASE (ex.: arquivo .env no backdend/).'
     );
