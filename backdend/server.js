@@ -76,6 +76,14 @@ const mysqlConfig = () => {
 // Bloco 2: Função para Conectar ao Banco de Dados
 const connectDatabase = async () => {
   const cfg = mysqlConfig();
+  if (typeof cfg === 'string') {
+    try {
+      const u = new URL(cfg);
+      console.log(`BACKEND: MySQL config via URL → host=${u.hostname} port=${u.port} user=${u.username} db=${u.pathname.slice(1)}`);
+    } catch(e) { console.log('BACKEND: MySQL config via URL (parse error)'); }
+  } else {
+    console.log(`BACKEND: MySQL config individual → host=${cfg.host} port=${cfg.port} user=${cfg.user} db=${cfg.database}`);
+  }
   if (!cfg) {
     throw new Error(
       'BACKEND: Defina MYSQL_URL ou MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD e MYSQL_DATABASE.'
