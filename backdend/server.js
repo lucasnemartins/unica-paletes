@@ -1,3 +1,7 @@
+// Força resolução DNS para IPv4 (evita problemas com MySQL no Railway via IPv6)
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+
 // Bloco 1: Importações e Inicialização do Express
 const express = require('express');
 const mysql = require('mysql2/promise');
