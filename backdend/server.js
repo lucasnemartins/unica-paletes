@@ -60,30 +60,39 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const mysqlConfig = () => {
-  // Usa MYSQL_URL se disponível (Railway injeta automaticamente)
-  if (process.env.MYSQL_URL) {
-    return process.env.MYSQL_URL;
-  }
-  return {
-    host: process.env.MYSQL_HOST,
+  const base = {
+    host: process.env.MYSQL_HOST || 'mysql.railway.internal',
     port: Number(process.env.MYSQL_PORT || 3306),
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_DATABASE,
+    database: process.env.MYSQL_DATABASE || 'railway',
+    ssl: { rejectUnauthorized: false },
   };
+
+  // Se tiver MYSQL_URL, extrai os campos e sobrescreve
+  const url = process.env.MYSQL_URL;
+  if (url) {
+    try {
+      const u = new URL(url);
+      return {
+        ...base,
+        host: u.hostname,
+        port: parseInt(u.port) || 3306,
+        user: u.username,
+        password: decodeURIComponent(u.password),
+        database: u.pathname.slice(1) || 'railway',
+      };
+    } catch (e) {
+      console.error('BACKEND: Erro ao parsear MYSQL_URL:', e.message);
+    }
+  }
+  return base;
 };
 
 // Bloco 2: Função para Conectar ao Banco de Dados
 const connectDatabase = async () => {
   const cfg = mysqlConfig();
-  if (typeof cfg === 'string') {
-    try {
-      const u = new URL(cfg);
-      console.log(`BACKEND: MySQL config via URL → host=${u.hostname} port=${u.port} user=${u.username} db=${u.pathname.slice(1)}`);
-    } catch(e) { console.log('BACKEND: MySQL config via URL (parse error)'); }
-  } else {
-    console.log(`BACKEND: MySQL config individual → host=${cfg.host} port=${cfg.port} user=${cfg.user} db=${cfg.database}`);
-  }
+  console.log(`BACKEND: MySQL → host=${cfg.host} port=${cfg.port} user=${cfg.user} db=${cfg.database}`);
   if (!cfg) {
     throw new Error(
       'BACKEND: Defina MYSQL_URL ou MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD e MYSQL_DATABASE.'
