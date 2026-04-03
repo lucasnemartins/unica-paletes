@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "platforms": ["web"],
+    "name": "Única Paletes",
+    "slug": "unicapallets",
+    "version": "1.0.3",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "transparent"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/images/favicon.png",
+      "name": "Única Paletes",
+      "shortName": "Paletes",
+      "description": "Sistema de gestão de paletes",
+      "themeColor": "#b8934b",
+      "backgroundColor": "#ffffff"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "apiUrl": "https://unica-paletes-backend.up.railway.app",
+      "eas": {
+        "projectId": "65cbefe6-d5ca-4830-8d0f-8456123a35fe"
+      }
+    },
+    "owner": "lucasnmartins"
+  }
+}

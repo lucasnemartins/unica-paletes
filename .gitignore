@@ -1,0 +1,56 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env
+.env*.local
+backdend/.env
+
+# logs (podem conter secrets)
+*.log
+
+# typescript
+*.tsbuildinfo
+
+app-example
+
+# Credenciais nativas (Android/iOS) — não subir no git
+credentials.json
+credentials/
+*.jks
+
+# Arquivos temporários/teste
+img.b64
+test.jpg
+webpack.config.js.bak
+
+# Imagem de upload server (não usado na versão web)
+image-upload-server/

@@ -1,0 +1,103 @@
+import { useRouter } from 'expo-router';
+ import React from 'react';
+ import { View, TouchableOpacity, StyleSheet, ImageBackground, Text } from 'react-native';
+ import { useNavigation } from '@react-navigation/native'; // Import useNavigation
+
+ export default function HomeScreen() {
+  const router = useRouter();
+
+  const irParaCompra = () => {
+    router.push('/compra');
+  };
+
+  const irParaVenda = () => {
+    router.push('/venda');
+  };
+
+  const irParaInventario = () => {
+    router.push('/inventario');
+  };
+
+  const irParaFluxoDeCaixa = () => {
+    router.push('/fluxo-de-caixa');
+    
+  };
+  
+
+  return (
+    <ImageBackground
+      source={require('./assets/fundo_com_logo.png')} // Ajuste o caminho conforme necessário
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <View style={styles.container}>
+        <View style={styles.buttonContainer}>
+          <View style={styles.row}>
+            <TouchableOpacity style={styles.button} onPress={irParaCompra}>
+              <Text style={styles.buttonText}>COMPRAR</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={irParaVenda}>
+              <Text style={styles.buttonText}>VENDER</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.row}>
+            <TouchableOpacity style={styles.button} onPress={irParaInventario}>
+              <Text style={styles.buttonText}>INVENTÁRIO</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={irParaFluxoDeCaixa}>
+              <Text style={styles.buttonText}>CAIXA</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </ImageBackground>
+  );
+ }
+
+ const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+  },
+  buttonContainer: {
+    width: '100%',
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  row: {
+    flexDirection: 'row',
+    width: '90%',
+    justifyContent: 'space-around',
+    marginBottom: 10, // Aumentei um pouco o marginBottom entre as linhas
+  },
+  button: {
+    backgroundColor: '#b8934b',
+    paddingHorizontal: 25, // Ajustei o padding horizontal
+    borderRadius: 10, // Arredondamento um pouco maior
+    elevation: 5, // Sombra um pouco maior
+    width: 170,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height:80,
+    marginRight: 10,
+    right:17,
+    marginTop: 0
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16, // Reduzi um pouco o tamanho da fonte para melhor encaixe
+    textAlign: 'center',
+  },
+ });

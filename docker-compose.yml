@@ -1,0 +1,91 @@
+version: '3.8'
+
+# Uso local: docker compose up --build
+# Acesse em: http://localhost:3000
+
+services:
+
+  mysql:
+    image: mysql:8
+    container_name: unicapaletes-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: unicapaletes123
+      MYSQL_DATABASE: dbunicapaletes
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - unicapaletes-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mongodb:
+    image: mongo:7
+    container_name: unicapaletes-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - unicapaletes-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backdend
+      dockerfile: Dockerfile
+    container_name: unicapaletes-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    networks:
+      - unicapaletes-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: unicapaletes123
+      MYSQL_DATABASE: dbunicapaletes
+      MONGODB_URI: mongodb://mongodb:27017/dbunicapaletes
+      HOST_URL: http://localhost:3001
+      CLOUDFLARE_ACCOUNT_ID: fcdf79e6a45c58c215da9c1b6910c54c
+      CLOUDFLARE_API_TOKEN: RYkP3BvgWEOzKn0YPNF0w6kHHzNht9kYK3a2Q2he
+      CLOUDFLARE_ACCOUNT_HASH: 2Dd5b2qJNuevtjYxElHHMg
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: unicapaletes-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - unicapaletes-network
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+  mongo_data:
+
+networks:
+  unicapaletes-network:
+    driver: bridge
