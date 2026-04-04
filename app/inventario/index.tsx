@@ -83,7 +83,7 @@
    if (value === null || isNaN(parseFloat(value))) {
     return '';
    }
-   return value.toString();
+   return Math.round(parseFloat(value)).toString();
   };
 
   const fetchEstoqueDetails = async (cdPallet: string) => {
