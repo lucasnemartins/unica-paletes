@@ -309,23 +309,13 @@ export default function HomeScreen() {
   };
 
   const handleLimpar = () => {
-    Alert.alert(
-      'Limpar campos',
-      'Tem certeza que deseja limpar todas as quantidades e fotos?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Limpar',
-          style: 'destructive',
-          onPress: () => {
-            setPallets(prev => prev.map(p => ({ ...p, Qt: null, Valor: null })));
-            setPendingPhotos([]);
-            setPhotos([]);
-            setPurchaseId(null);
-          },
-        },
-      ]
-    );
+    const confirmado = window.confirm('Limpar todas as quantidades e fotos preenchidas?');
+    if (confirmado) {
+      setPallets(prev => prev.map(p => ({ ...p, Qt: null, Valor: null })));
+      setPendingPhotos([]);
+      setPhotos([]);
+      setPurchaseId(null);
+    }
   };
 
   const goBackToMenu = () => {
@@ -442,7 +432,7 @@ export default function HomeScreen() {
               disabled={loading || pendingPhotos.length >= 3}
             >
               <FontAwesome name="camera" size={20} color="white" style={{ marginRight: 5 }} />
-              <Text style={styles.buttonText}>Tirar Foto ({pendingPhotos.length}/3)</Text>
+              <Text style={styles.buttonText}>Foto ({pendingPhotos.length}/3)</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.button, styles.clearButton]} onPress={handleLimpar} disabled={loading}>
               <FontAwesome name="trash" size={18} color="white" />
