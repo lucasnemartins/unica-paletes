@@ -942,10 +942,14 @@ app.get('/api/health', (req, res) => {
 
      // 1. Gravar total da sessão em tb_fluxo_caixa_historico (um registo consolidado por fechamento)
      const [[{ totalSessaoCaixa }]] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalSessaoCaixa FROM tb_fluxo_caixa');
-     if (parseFloat(totalSessaoCaixa) > 0) {
+     const [[{ totalSessaoCompras }]] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS totalSessaoCompras FROM tb_compra_consolidado');
+     const totalCaixaSessao = parseFloat(totalSessaoCaixa);
+     const totalComprasSessao = parseFloat(totalSessaoCompras);
+     const diferencaSessao = totalCaixaSessao - totalComprasSessao;
+     if (totalCaixaSessao > 0 || totalComprasSessao > 0) {
        await db.execute(
-         'INSERT INTO tb_fluxo_caixa_historico (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
-         [totalSessaoCaixa, dataFechamento]
+         'INSERT INTO tb_fluxo_caixa_historico (Caixa_Atual, Total_Compras, Diferenca, Data_Caixa) VALUES (?, ?, ?, ?)',
+         [totalCaixaSessao, totalComprasSessao, diferencaSessao, dataFechamento]
        );
      }
      await db.execute('DELETE FROM tb_fluxo_caixa');
