@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, ImageBackground, Text } from 'react-native';
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth } from '@clerk/clerk-react';
 
 export default function HomeScreen() {
   const router = useRouter();
