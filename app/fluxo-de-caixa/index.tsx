@@ -27,6 +27,7 @@ export default function FluxoCaixaScreen() {
   const [totalCaixa, setTotalCaixa] = useState(0);
   const [selectedDate, setSelectedDate] = useState('');
   const [showDateModal, setShowDateModal] = useState(false);
+  const [showFechamentoModal, setShowFechamentoModal] = useState(false);
 
   // Array com os últimos 30 dias para seleção
   const last30Days = Array.from({length: 30}, (_, i) => {
@@ -105,10 +106,18 @@ export default function FluxoCaixaScreen() {
     }
   };
 
+  const handleFecharCaixa = () => {
+    setShowFechamentoModal(true);
+  };
+
+  const confirmarFechamento = () => {
+    setShowFechamentoModal(false);
+    window.alert(`✓ Caixa do dia fechado!\n\nTotal adicionado hoje: € ${totalCaixa.toFixed(2)}\nTotal de compras: € ${totalCompras.toFixed(2)}\nSaldo atual: € ${saldoAtual.toFixed(2)}`);
+  };
+
   const goBackToMenu = () => {
     router.back();
   };
-
 
   const formatDate = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-');
@@ -144,9 +153,16 @@ export default function FluxoCaixaScreen() {
             placeholderTextColor="#999"
           />
 
-          <TouchableOpacity style={styles.addButton} onPress={handleAdicionarCompra}>
-            <Text style={styles.addButtonText}>ADICIONAR CAIXA</Text>
-          </TouchableOpacity>
+          <View style={styles.botoesRow}>
+            <TouchableOpacity style={[styles.addButton, { flex: 1, marginRight: 6 }]} onPress={handleAdicionarCompra} disabled={loading}>
+              <Feather name="plus-circle" size={18} color="white" style={{ marginRight: 6 }} />
+              <Text style={styles.addButtonText}>ADICIONAR CAIXA</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.fecharButton, { flex: 1, marginLeft: 6 }]} onPress={handleFecharCaixa} disabled={loading}>
+              <Feather name="lock" size={18} color="white" style={{ marginRight: 6 }} />
+              <Text style={styles.addButtonText}>FECHAR CAIXA</Text>
+            </TouchableOpacity>
+          </View>
 
           <TextInput
             style={[styles.summaryInput, styles.disabledInput]}
@@ -159,7 +175,7 @@ export default function FluxoCaixaScreen() {
             editable={false}
           />
           <TextInput
-            style={[styles.summaryInput, styles.disabledInput]}
+            style={[styles.summaryInput, styles.disabledInput, styles.destaqueInput]}
             value={`Total Adicionado Hoje: € ${isNaN(totalCaixa) ? '0.00' : totalCaixa.toFixed(2)}`}
             editable={false}
           />
@@ -236,6 +252,38 @@ export default function FluxoCaixaScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Modal Fechar Caixa do Dia */}
+      <Modal visible={showFechamentoModal} transparent animationType="fade" onRequestClose={() => setShowFechamentoModal(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.fechamentoModal}>
+            <Feather name="lock" size={32} color="#b8934b" style={{ marginBottom: 12 }} />
+            <Text style={styles.fechamentoTitulo}>Fechar Caixa do Dia</Text>
+            <View style={styles.fechamentoLinha}>
+              <Text style={styles.fechamentoLabel}>Total Adicionado Hoje</Text>
+              <Text style={styles.fechamentoValor}>€ {totalCaixa.toFixed(2)}</Text>
+            </View>
+            <View style={styles.fechamentoLinha}>
+              <Text style={styles.fechamentoLabel}>Total de Compras</Text>
+              <Text style={styles.fechamentoValor}>€ {totalCompras.toFixed(2)}</Text>
+            </View>
+            <View style={[styles.fechamentoLinha, styles.fechamentoSaldo]}>
+              <Text style={[styles.fechamentoLabel, { fontWeight: 'bold' }]}>Saldo Atual</Text>
+              <Text style={[styles.fechamentoValor, { fontWeight: 'bold', color: saldoAtual >= 0 ? '#27ae60' : '#c0392b' }]}>
+                € {saldoAtual.toFixed(2)}
+              </Text>
+            </View>
+            <View style={styles.fechamentoBotoes}>
+              <TouchableOpacity style={styles.fechamentoCancelar} onPress={() => setShowFechamentoModal(false)}>
+                <Text style={styles.fechamentoCancelarTexto}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.fechamentoConfirmar} onPress={confirmarFechamento}>
+                <Text style={styles.fechamentoConfirmarTexto}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ImageBackground>
   );
 }
@@ -280,21 +328,103 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     height: 45,
   },
+  botoesRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+    marginBottom: 10,
+  },
   addButton: {
     backgroundColor: '#b8934b',
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     borderRadius: 8,
     elevation: 3,
-    marginTop: 8,
-    marginBottom: 10,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fecharButton: {
+    backgroundColor: '#5d4e37',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    elevation: 3,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   addButtonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 15,
     textAlign: 'center',
+  },
+  destaqueInput: {
+    borderColor: '#b8934b',
+    borderWidth: 2,
+    color: '#5d4e37',
+    fontWeight: 'bold',
+  },
+  fechamentoModal: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    width: '88%',
+    alignItems: 'center',
+  },
+  fechamentoTitulo: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
+  },
+  fechamentoLinha: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  fechamentoSaldo: {
+    borderBottomWidth: 0,
+    marginTop: 4,
+  },
+  fechamentoLabel: {
+    fontSize: 15,
+    color: '#555',
+  },
+  fechamentoValor: {
+    fontSize: 15,
+    color: '#333',
+  },
+  fechamentoBotoes: {
+    flexDirection: 'row',
+    marginTop: 24,
+    gap: 12,
+  },
+  fechamentoCancelar: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    alignItems: 'center',
+  },
+  fechamentoCancelarTexto: {
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  fechamentoConfirmar: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#b8934b',
+    alignItems: 'center',
+  },
+  fechamentoConfirmarTexto: {
+    color: 'white',
+    fontWeight: 'bold',
   },
   historyContainer: {
     marginTop: 20,
