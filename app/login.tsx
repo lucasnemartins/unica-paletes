@@ -16,6 +16,8 @@ export default function LoginScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [totpCode, setTotpCode] = useState('');
+  const [step, setStep] = useState<'credentials' | 'totp'>('credentials');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,16 +29,37 @@ export default function LoginScreen() {
       const result = await signIn.create({ identifier: email, password });
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-      } else if (result.status === 'needs_first_factor') {
-        setError('Verificação adicional necessária. Contacta o administrador.');
       } else if (result.status === 'needs_second_factor') {
-        setError('Autenticação de dois fatores necessária. Desativa o 2FA no Clerk.');
+        setStep('totp');
       } else {
-        setError(`Status inesperado: ${result.status}`);
+        setError(`Erro inesperado: ${result.status}`);
       }
     } catch (err: any) {
-      const clerkMsg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'Email ou senha inválidos.';
-      setError(clerkMsg);
+      const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Email ou senha inválidos.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTotp = async () => {
+    if (!isLoaded || !totpCode) return;
+    setLoading(true);
+    setError('');
+    try {
+      const result = await signIn.attemptSecondFactor({
+        strategy: 'totp',
+        code: totpCode,
+      });
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+      } else {
+        setError(`Erro inesperado: ${result.status}`);
+      }
+    } catch (err: any) {
+      const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Código inválido.';
+      setError(msg);
+      setTotpCode('');
     } finally {
       setLoading(false);
     }
@@ -53,42 +76,83 @@ export default function LoginScreen() {
         style={styles.container}
       >
         <View style={styles.card}>
-          <Text style={styles.title}>Entrar</Text>
+          {step === 'credentials' ? (
+            <>
+              <Text style={styles.title}>Entrar</Text>
 
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="seu@email.com"
-            placeholderTextColor="#999"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="seu@email.com"
+                placeholderTextColor="#999"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
 
-          <Text style={styles.label}>Senha</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••"
-            placeholderTextColor="#999"
-            secureTextEntry
-          />
+              <Text style={styles.label}>Senha</Text>
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                placeholderTextColor="#999"
+                secureTextEntry
+              />
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+              {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.buttonText}>ENTRAR</Text>
-            )}
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.buttonText}>ENTRAR</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={styles.title}>Verificação</Text>
+              <Text style={styles.subtitle}>
+                Abre o teu autenticador e insere o código de 6 dígitos.
+              </Text>
+
+              <Text style={styles.label}>Código</Text>
+              <TextInput
+                style={styles.input}
+                value={totpCode}
+                onChangeText={setTotpCode}
+                placeholder="000000"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                maxLength={6}
+                autoFocus
+              />
+
+              {error ? <Text style={styles.error}>{error}</Text> : null}
+
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleTotp}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.buttonText}>VERIFICAR</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => { setStep('credentials'); setError(''); }}>
+                <Text style={styles.back}>← Voltar</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </KeyboardAvoidingView>
     </ImageBackground>
@@ -114,6 +178,12 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: 'bold',
     color: '#333',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -144,4 +214,5 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
   error: { color: '#e53e3e', fontSize: 13, marginBottom: 12, textAlign: 'center' },
+  back: { color: '#b8934b', textAlign: 'center', marginTop: 16, fontSize: 14 },
 });
