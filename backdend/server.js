@@ -936,33 +936,50 @@ app.get('/api/health', (req, res) => {
    try {
      await db.beginTransaction();
 
-     // Buscar registros da sessão atual
-     const [registrosSessao] = await db.execute('SELECT Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa');
-
-     if (registrosSessao.length > 0) {
-       // Mover para tb_fluxo_caixa_historico
-       for (const reg of registrosSessao) {
-         await db.execute(
-           'INSERT INTO tb_fluxo_caixa_historico (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
-           [reg.Caixa_Atual, reg.Data_Caixa]
-         );
-       }
-       // Limpar a sessão atual
-       await db.execute('DELETE FROM tb_fluxo_caixa');
+     // 1. Mover tb_fluxo_caixa (sessão) → tb_fluxo_caixa_historico
+     const [registrosCaixa] = await db.execute('SELECT Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa');
+     for (const reg of registrosCaixa) {
+       await db.execute(
+         'INSERT INTO tb_fluxo_caixa_historico (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
+         [reg.Caixa_Atual, reg.Data_Caixa]
+       );
      }
+     await db.execute('DELETE FROM tb_fluxo_caixa');
 
-     // Registrar consolidado com totais acumulados do histórico
+     // 2. Mover tb_compra (sessão) → tb_compra_historico
+     const [registrosCompra] = await db.execute('SELECT id_compra, Cd_Pallet, Nm_Pallet, Data_Compra, Qt_Pallet, Vl FROM tb_compra');
+     for (const reg of registrosCompra) {
+       await db.execute(
+         'INSERT INTO tb_compra_historico (id_compra, Cd_Pallet, Nm_Pallet, Data_Compra, Qt_Pallet, Vl) VALUES (?, ?, ?, ?, ?, ?)',
+         [reg.id_compra, reg.Cd_Pallet, reg.Nm_Pallet, reg.Data_Compra, reg.Qt_Pallet, reg.Vl]
+       );
+     }
+     await db.execute('DELETE FROM tb_compra');
+
+     // 3. Mover tb_compra_consolidado (sessão) → tb_compra_consolidado_historico
+     const [registrosConsolidado] = await db.execute('SELECT data_compra, Qt_Total, valor_total FROM tb_compra_consolidado');
+     for (const reg of registrosConsolidado) {
+       await db.execute(
+         'INSERT INTO tb_compra_consolidado_historico (data_compra, Qt_Total, valor_total) VALUES (?, ?, ?)',
+         [reg.data_compra, reg.Qt_Total, reg.valor_total]
+       );
+     }
+     await db.execute('DELETE FROM tb_compra_consolidado');
+
+     // 4. Gravar snapshot no consolidado de caixa
      const now = new Date();
      const pad = n => n.toString().padStart(2, '0');
      const dataFechamento = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-     const [caixaRows] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixa FROM tb_fluxo_caixa_historico');
-     const [compraRows] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS totalCompras FROM tb_compra_consolidado');
-     const totalCaixa = parseFloat(caixaRows[0].totalCaixa);
-     const totalCompras = parseFloat(compraRows[0].totalCompras);
+
+     const [[{ totalCaixaHist }]] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixaHist FROM tb_fluxo_caixa_historico');
+     const [[{ totalComprasHist }]] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS totalComprasHist FROM tb_compra_consolidado_historico');
+     const totalCaixa = parseFloat(totalCaixaHist);
+     const totalCompras = parseFloat(totalComprasHist);
      const saldoAtual = totalCaixa - totalCompras;
+
      await db.execute(
        'INSERT INTO tb_fluxo_caixa_consolidado (Total_Compras, Saldo_Atual, Diferenca, Data_Caixa) VALUES (?, ?, ?, ?)',
-       [totalCompras, saldoAtual, saldoAtual - totalCompras, dataFechamento]
+       [totalCompras, saldoAtual, saldoAtual, dataFechamento]
      );
 
      await db.commit();
@@ -1059,16 +1076,17 @@ app.get('/api/health', (req, res) => {
     );
     const totalCaixa = parseFloat(totalCaixaResult[0].total);
 
-    // totalCompras do dia atual
+    // totalCompras da sessão atual
     const [totalComprasResult] = await db.execute(
-      'SELECT IFNULL(SUM(valor_total), 0) AS total FROM tb_compra_consolidado WHERE DATE(data_compra) = CURDATE()'
+      'SELECT IFNULL(SUM(valor_total), 0) AS total FROM tb_compra_consolidado'
     );
     const totalCompras = parseFloat(totalComprasResult[0].total);
 
-    const [[{ totalHist }]] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalHist FROM tb_fluxo_caixa_historico');
-    const totalCaixaGeral = parseFloat(totalHist) + totalCaixa;
-    const [totalComprasGeralResult] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS total FROM tb_compra_consolidado');
-    const totalComprasGeral = parseFloat(totalComprasGeralResult[0].total);
+    // saldoAtual = (histórico caixa + sessão caixa) - (histórico compras + sessão compras)
+    const [[{ totalCaixaHist }]] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixaHist FROM tb_fluxo_caixa_historico');
+    const [[{ totalComprasHist }]] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS totalComprasHist FROM tb_compra_consolidado_historico');
+    const totalCaixaGeral = parseFloat(totalCaixaHist) + totalCaixa;
+    const totalComprasGeral = parseFloat(totalComprasHist) + totalCompras;
     const saldoAtual = totalCaixaGeral - totalComprasGeral;
 
     res.json({
