@@ -28,6 +28,7 @@ export default function FluxoCaixaScreen() {
   const [selectedDate, setSelectedDate] = useState('');
   const [showDateModal, setShowDateModal] = useState(false);
   const [showFechamentoModal, setShowFechamentoModal] = useState(false);
+  const [fechadoEm, setFechadoEm] = useState<string | null>(null);
 
   // Array com os últimos 30 dias para seleção
   const last30Days = Array.from({length: 30}, (_, i) => {
@@ -42,7 +43,7 @@ export default function FluxoCaixaScreen() {
     fetchCashFlowData(date);
   };
 
-  const fetchCashFlowData = async (dateStr?: string) => {
+  const fetchCashFlowData = async (dateStr?: string, desde?: string | null) => {
     try {
       setLoading(true);
       setError(null);
@@ -54,8 +55,11 @@ export default function FluxoCaixaScreen() {
       const response = await axios.get(url);
       setCashFlowHistory(response.data);
 
-      // Buscar total de compras e usar o último Caixa_Atual do histórico como saldo atual
-      const resumoResponse = await axios.get(`${API_URL}/api/resumo-caixa`);
+      const desdeParam = desde !== undefined ? desde : fechadoEm;
+      const resumoUrl = desdeParam
+        ? `${API_URL}/api/resumo-caixa?desde=${encodeURIComponent(desdeParam)}`
+        : `${API_URL}/api/resumo-caixa`;
+      const resumoResponse = await axios.get(resumoUrl);
       setTotalCompras(resumoResponse.data.totalCompras || 0);
       setSaldoAtual(resumoResponse.data.saldoAtual || 0);
       setTotalCaixa(resumoResponse.data.totalCaixa || 0);
@@ -97,7 +101,7 @@ export default function FluxoCaixaScreen() {
 
       console.log('Resposta:', response.data);
       setCompraInput('');
-      fetchCashFlowData(selectedDate);
+      fetchCashFlowData(selectedDate, fechadoEm);
     } catch (err) {
       console.error('Erro ao adicionar compra:', err);
       setError('Erro ao adicionar compra');
@@ -111,10 +115,12 @@ export default function FluxoCaixaScreen() {
   };
 
   const confirmarFechamento = () => {
+    const agora = new Date().toISOString();
     setShowFechamentoModal(false);
     setTotalCaixa(0);
     setTotalCompras(0);
-    window.alert(`✓ Caixa do dia fechado!\n\nTotal adicionado hoje: € ${totalCaixa.toFixed(2)}\nTotal de compras: € ${totalCompras.toFixed(2)}\nSaldo atual: € ${saldoAtual.toFixed(2)}`);
+    setFechadoEm(agora);
+    window.alert(`✓ Caixa fechado!\n\nTotal adicionado hoje: € ${totalCaixa.toFixed(2)}\nTotal de compras: € ${totalCompras.toFixed(2)}\nSaldo atual: € ${saldoAtual.toFixed(2)}`);
   };
 
   const goBackToMenu = () => {
