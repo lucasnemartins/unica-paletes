@@ -24,6 +24,7 @@ export default function FluxoCaixaScreen() {
   const [error, setError] = useState<string | null>(null);
   const [totalCompras, setTotalCompras] = useState(0);
   const [saldoAtual, setSaldoAtual] = useState(0);
+  const [totalCaixa, setTotalCaixa] = useState(0);
   const [selectedDate, setSelectedDate] = useState('');
   const [showDateModal, setShowDateModal] = useState(false);
 
@@ -55,8 +56,8 @@ export default function FluxoCaixaScreen() {
       // Buscar total de compras e usar o último Caixa_Atual do histórico como saldo atual
       const resumoResponse = await axios.get(`${API_URL}/api/resumo-caixa`);
       setTotalCompras(resumoResponse.data.totalCompras || 0);
-      // Usar o Saldo_Atual consolidado retornado pelo resumo-caixa (MySQL tb_fluxo_caixa_consolidado)
       setSaldoAtual(resumoResponse.data.saldoAtual || 0);
+      setTotalCaixa(resumoResponse.data.totalCaixa || 0);
 
     } catch (err) {
       setError('Erro ao carregar histórico');
@@ -108,7 +109,6 @@ export default function FluxoCaixaScreen() {
     router.back();
   };
 
-  const diferencaComprasSaldo = saldoAtual - totalCompras;
 
   const formatDate = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-');
@@ -160,7 +160,7 @@ export default function FluxoCaixaScreen() {
           />
           <TextInput
             style={[styles.summaryInput, styles.disabledInput]}
-            value={`Diferença (Saldo - Compras): € ${isNaN(diferencaComprasSaldo) ? '0.00' : diferencaComprasSaldo.toFixed(2)}`}
+            value={`Total Adicionado ao Caixa: € ${isNaN(totalCaixa) ? '0.00' : totalCaixa.toFixed(2)}`}
             editable={false}
           />
 

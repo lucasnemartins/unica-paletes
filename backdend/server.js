@@ -1030,15 +1030,19 @@ app.get('/api/health', (req, res) => {
    try {
     const [totalComprasResult] = await db.execute('SELECT SUM(Valor_Total) AS total FROM tb_compra_consolidado');
     const totalCompras = totalComprasResult[0]?.total ? parseFloat(totalComprasResult[0].total) : 0;
- 
+
+    const [totalCaixaResult] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual), 0) AS total FROM tb_fluxo_caixa');
+    const totalCaixa = parseFloat(totalCaixaResult[0].total);
+
     const [saldoAtualResult] = await db.execute(
       'SELECT Saldo_Atual AS Saldo FROM tb_fluxo_caixa_consolidado ORDER BY Data_Caixa DESC LIMIT 1'
     );
     const saldoAtual = saldoAtualResult[0]?.Saldo ? parseFloat(saldoAtualResult[0].Saldo) : 0;
- 
+
     res.json({
-     totalCompras: totalCompras,
-     saldoAtual: saldoAtual
+     totalCompras,
+     saldoAtual,
+     totalCaixa,
     });
    } catch (err) {
     console.error('BACKEND: Erro ao buscar resumo do caixa:', err);
