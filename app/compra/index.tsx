@@ -488,10 +488,11 @@ export default function HomeScreen() {
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={styles.historicoData}>
-                      {new Date(compra.data_compra).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      {new Date(compra.data_compra).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}{' '}
+                      {new Date(compra.data_compra).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </Text>
                     <Text style={styles.historicoInfo}>
-                      {compra.Qt_Total} paletes · R$ {Number(compra.valor_total).toFixed(2)}
+                      {compra.Qt_Total} paletes · € {Number(compra.valor_total).toFixed(2)}
                     </Text>
                   </View>
                   <FontAwesome name="camera" size={16} color="#b8934b" />
