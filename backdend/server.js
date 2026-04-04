@@ -93,20 +93,24 @@ const mysqlConfig = () => {
 const connectDatabase = async () => {
   const cfg = mysqlConfig();
   console.log(`BACKEND: MySQL → host=${cfg.host} port=${cfg.port} user=${cfg.user} db=${cfg.database}`);
-  if (!cfg) {
-    throw new Error(
-      'BACKEND: Defina MYSQL_URL ou MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD e MYSQL_DATABASE.'
-    );
-  }
   if (typeof cfg === 'object' && (!cfg.host || !cfg.user || cfg.password === undefined || !cfg.database)) {
     throw new Error(
-      'BACKEND: Defina MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD e MYSQL_DATABASE (ex.: arquivo .env no backdend/).'
+      'BACKEND: Defina MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD e MYSQL_DATABASE.'
     );
   }
   try {
-    const db = await mysql.createConnection(cfg);
-    console.log('BACKEND: Conectado ao MySQL com sucesso!');
-    return db;
+    // Pool reconecta automaticamente quando a conexão cai
+    const pool = mysql.createPool({
+      ...cfg,
+      waitForConnections: true,
+      connectionLimit: 5,
+      queueLimit: 0,
+    });
+    // Testa a conexão imediatamente
+    const conn = await pool.getConnection();
+    console.log('BACKEND: Conectado ao MySQL com sucesso (pool)!');
+    conn.release();
+    return pool;
   } catch (err) {
     console.error('BACKEND: Erro ao conectar ao MySQL:', err);
     throw err;
