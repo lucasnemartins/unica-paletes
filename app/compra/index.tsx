@@ -95,11 +95,11 @@ export default function HomeScreen() {
     setTotals(newTotals);
   }, [pallets]);
 
-  const handleSubmit = async (): Promise<number | null> => {
+  const handleSubmit = async () => {
     try {
       setLoading(true);
       const palletsToSend: Pallet[] = pallets
-        .filter(pallet => pallet.Qt !== null && pallet.Valor !== null) // Filtra apenas pallets com dados
+        .filter(pallet => pallet.Qt !== null && pallet.Valor !== null)
         .map(pallet => ({
           ...pallet,
           Qt: pallet.Qt === '' ? null : pallet.Qt,
@@ -108,21 +108,32 @@ export default function HomeScreen() {
 
       if (palletsToSend.length === 0) {
         Alert.alert('Aviso', 'Nenhum pallet com dados para enviar');
-        return null;
+        return;
       }
 
+      // 1. Salvar compra
       const response: AxiosResponse<{ message: string; id_compra: number }> = await axios.post(`${API_URL}/api/compras`, palletsToSend, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-      Alert.alert('Sucesso', response.data.message);
-      setPurchaseId(response.data.id_compra);
-      setPhotos([]);
+      const idCompra = response.data.id_compra;
+      setPurchaseId(idCompra);
 
+      // 2. Enviar fotos pendentes automaticamente (se houver)
+      if (pendingPhotos.length > 0) {
+        const photosToUpload = [...pendingPhotos];
+        setPendingPhotos([]);
+        for (const uri of photosToUpload) {
+          await uploadImage(uri, idCompra, false);
+        }
+        Alert.alert('Sucesso', `Compra registrada e ${photosToUpload.length} foto(s) enviada(s)!`);
+      } else {
+        Alert.alert('Sucesso', response.data.message);
+      }
+
+      // 3. Limpar formulário
+      setPhotos([]);
       const resetPallets: Pallet[] = pallets.map(pallet => ({ ...pallet, Qt: null, Valor: null }));
       setPallets(resetPallets);
-      return response.data.id_compra;
     } catch (error: any) {
       console.error('Erro ao enviar os dados:', error);
       if (error.response) {
@@ -132,7 +143,6 @@ export default function HomeScreen() {
       } else {
         Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
       }
-      return null;
     } finally {
       setLoading(false);
     }
@@ -432,15 +442,11 @@ export default function HomeScreen() {
               ))}
             </View>
           )}
-          {/* Botão Enviar Fotos abaixo da galeria */}
+          {/* Fotos pendentes são enviadas automaticamente ao Finalizar Compra */}
           {pendingPhotos.length > 0 && (
-            <TouchableOpacity
-              style={[styles.button, { alignSelf: 'center', marginVertical: 10 }]}
-              onPress={uploadAllPhotos}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>Enviar Fotos</Text>
-            </TouchableOpacity>
+            <Text style={styles.pendingPhotosHint}>
+              {pendingPhotos.length} foto(s) será(ão) enviada(s) ao finalizar
+            </Text>
           )}
           {/* Exibe fotos enviadas já salvas no MongoDB */}
           {photos.length > 0 && (
@@ -641,6 +647,13 @@ const styles = StyleSheet.create({
     height: 100,
     margin: 5,
     borderRadius: 8,
+  },
+  pendingPhotosHint: {
+    textAlign: 'center',
+    color: '#b8934b',
+    fontSize: 13,
+    fontStyle: 'italic',
+    marginVertical: 6,
   },
   historicoButton: {
     alignSelf: 'center',
