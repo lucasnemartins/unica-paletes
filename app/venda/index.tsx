@@ -298,7 +298,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet,
          value={vlUniVendaInput}
          onChangeText={handleVlUniVendaChange}
          placeholder="€ Valor Unitário Venda"
-         keyboardType="numeric"
+         keyboardType="decimal-pad"
          placeholderTextColor="#999"
         />
        </View>
