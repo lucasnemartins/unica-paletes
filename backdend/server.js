@@ -646,14 +646,24 @@ app.get('/api/health', (req, res) => {
       const base64Time = Date.now() - base64StartTime;
       console.log(`BACKEND: Tempo de processamento base64: ${base64Time}ms`);
 
-      // Salvar no MongoDB
-      const mongoStartTime = Date.now();
+      // Fazer upload para o Cloudflare Images
+      const cloudflareStartTime = Date.now();
       const fileName = `image_${Date.now()}.jpg`;
-      
+      const base64Clean = base64Data.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Clean, 'base64');
+      const compressedBuffer = await compressImage(buffer);
+      const imageBuffer = compressedBuffer || buffer;
+      const cloudflareResult = await uploadToCloudflare(imageBuffer, fileName);
+      const imageUrl = `https://imagedelivery.net/${process.env.CLOUDFLARE_ACCOUNT_HASH}/${cloudflareResult.id}/public`;
+      const cloudflareTime = Date.now() - cloudflareStartTime;
+      console.log(`BACKEND: Upload para Cloudflare: ${cloudflareTime}ms → ${imageUrl}`);
+
+      // Salvar URL do Cloudflare no MongoDB (não o base64)
+      const mongoStartTime = Date.now();
       const created = await FotoCompra.create({
         id_compra: parseInt(idCompra),
         file_name: fileName,
-        url: base64Data, // Salvar o base64 diretamente
+        url: imageUrl,
         created_at: new Date(),
         quantidade: req.body.quantidade ? Number(req.body.quantidade) : 0,
         valor: req.body.valor ? Number(req.body.valor) : 0
@@ -664,7 +674,7 @@ app.get('/api/health', (req, res) => {
       // Atualizar compra em background sem esperar
       Compra.findOneAndUpdate(
         { id_compra: parseInt(idCompra) },
-        { $push: { photos: base64Data } },
+        { $push: { photos: imageUrl } },
         { new: true, upsert: true }
       ).catch(err => console.error('Erro ao atualizar compra:', err));
 
@@ -673,10 +683,10 @@ app.get('/api/health', (req, res) => {
 
       res.json({
         message: 'Foto da compra registrada com sucesso!',
-        url: base64Data,
+        url: imageUrl,
         metadata: created,
         performance: {
-          base64Time,
+          cloudflareTime,
           mongoTime,
           totalTime
         }
