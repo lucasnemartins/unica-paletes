@@ -1031,7 +1031,9 @@ app.get('/api/health', (req, res) => {
     const [totalComprasResult] = await db.execute('SELECT SUM(Valor_Total) AS total FROM tb_compra_consolidado');
     const totalCompras = totalComprasResult[0]?.total ? parseFloat(totalComprasResult[0].total) : 0;
 
-    const [totalCaixaResult] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual), 0) AS total FROM tb_fluxo_caixa');
+    const [totalCaixaResult] = await db.execute(
+      'SELECT IFNULL(SUM(Caixa_Atual), 0) AS total FROM tb_fluxo_caixa WHERE DATE(Data_Caixa) = CURDATE()'
+    );
     const totalCaixa = parseFloat(totalCaixaResult[0].total);
 
     const [saldoAtualResult] = await db.execute(

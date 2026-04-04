@@ -160,7 +160,7 @@ export default function FluxoCaixaScreen() {
           />
           <TextInput
             style={[styles.summaryInput, styles.disabledInput]}
-            value={`Total Adicionado ao Caixa: € ${isNaN(totalCaixa) ? '0.00' : totalCaixa.toFixed(2)}`}
+            value={`Total Adicionado Hoje: € ${isNaN(totalCaixa) ? '0.00' : totalCaixa.toFixed(2)}`}
             editable={false}
           />
 
