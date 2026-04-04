@@ -946,6 +946,14 @@ app.get('/api/health', (req, res) => {
      const totalCaixaSessao = parseFloat(totalSessaoCaixa);
      const totalComprasSessao = parseFloat(totalSessaoCompras);
      const diferencaSessao = totalCaixaSessao - totalComprasSessao;
+     // Detalhe por adição (igual tb_compra → tb_compra_historico)
+     const [linhasCaixaSessao] = await db.execute('SELECT id_caixa, Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa');
+     for (const linha of linhasCaixaSessao) {
+       await db.execute(
+         'INSERT INTO tb_caixa_historico (id_original, Caixa_Atual, Data_Caixa) VALUES (?, ?, ?)',
+         [linha.id_caixa, linha.Caixa_Atual, linha.Data_Caixa]
+       );
+     }
      if (totalCaixaSessao > 0 || totalComprasSessao > 0) {
        await db.execute(
          'INSERT INTO tb_fluxo_caixa_historico (Caixa_Atual, Total_Compras, Diferenca, Data_Caixa) VALUES (?, ?, ?, ?)',
@@ -1069,6 +1077,25 @@ app.get('/api/health', (req, res) => {
    } catch (err) {
     console.error('BACKEND: Erro ao buscar fluxo de caixa por período:', err);
     return res.status(500).send('Erro ao buscar fluxo de caixa por período');
+   }
+  });
+
+  // Histórico detalhado de adições ao caixa (tb_caixa_historico), por linha como tb_compra_historico
+  app.get('/api/caixa-historico', async (req, res) => {
+   const { data } = req.query;
+   try {
+    let query = 'SELECT id, id_original, Caixa_Atual, Data_Caixa FROM tb_caixa_historico WHERE 1=1';
+    const queryParams = [];
+    if (data) {
+     query += ' AND DATE(Data_Caixa) = ?';
+     queryParams.push(data);
+    }
+    query += ' ORDER BY Data_Caixa DESC LIMIT 500';
+    const [result] = await db.execute(query, queryParams);
+    res.json(result);
+   } catch (err) {
+    console.error('BACKEND: Erro ao buscar tb_caixa_historico:', err);
+    return res.status(500).send('Erro ao buscar histórico detalhado do caixa');
    }
   });
 
