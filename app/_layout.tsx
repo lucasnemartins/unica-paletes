@@ -27,6 +27,7 @@ function InitialLayout() {
       <Stack.Screen name="venda" />
       <Stack.Screen name="inventario" />
       <Stack.Screen name="fluxo-de-caixa" />
+      <Stack.Screen name="perfil" />
     </Stack>
   );
 }
