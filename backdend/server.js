@@ -936,12 +936,16 @@ app.get('/api/health', (req, res) => {
    try {
      await db.beginTransaction();
 
-     // 1. Mover tb_fluxo_caixa (sessão) → tb_fluxo_caixa_historico
-     const [registrosCaixa] = await db.execute('SELECT Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa');
-     for (const reg of registrosCaixa) {
+     const now = new Date();
+     const pad = n => n.toString().padStart(2, '0');
+     const dataFechamento = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+     // 1. Gravar total da sessão em tb_fluxo_caixa_historico (um registo consolidado por fechamento)
+     const [[{ totalSessaoCaixa }]] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalSessaoCaixa FROM tb_fluxo_caixa');
+     if (parseFloat(totalSessaoCaixa) > 0) {
        await db.execute(
          'INSERT INTO tb_fluxo_caixa_historico (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
-         [reg.Caixa_Atual, reg.Data_Caixa]
+         [totalSessaoCaixa, dataFechamento]
        );
      }
      await db.execute('DELETE FROM tb_fluxo_caixa');
@@ -967,9 +971,6 @@ app.get('/api/health', (req, res) => {
      await db.execute('DELETE FROM tb_compra_consolidado');
 
      // 4. Gravar snapshot no consolidado de caixa
-     const now = new Date();
-     const pad = n => n.toString().padStart(2, '0');
-     const dataFechamento = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
      const [[{ totalCaixaHist }]] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixaHist FROM tb_fluxo_caixa_historico');
      const [[{ totalComprasHist }]] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS totalComprasHist FROM tb_compra_consolidado_historico');
