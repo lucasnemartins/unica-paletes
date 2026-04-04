@@ -254,7 +254,7 @@ export default function HomeScreen() {
       setSelectedCompraId(idCompra);
       setFotosHistorico([]);
       const response = await axios.get(`${API_URL}/api/mongo/compras/${idCompra}/fotos`);
-      const urls = response.data.map((f: any) => f.url).filter((url: string) => !url.startsWith('data:'));
+      const urls = response.data.map((f: any) => f.url);
       setFotosHistorico(urls);
       if (urls.length === 0) {
         Alert.alert('Sem fotos', 'Nenhuma foto encontrada para esta compra.');
