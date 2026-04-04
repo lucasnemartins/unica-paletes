@@ -918,52 +918,61 @@ app.get('/api/health', (req, res) => {
    const dataCaixa = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
    try {
-     // Iniciar transação
-     await db.beginTransaction();
-
-     // Inserir valor no fluxo de caixa
-     const [insertCaixa] = await db.execute(
-       'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
+     // Inserir na tabela do dia (temporária)
+     await db.execute(
+       'INSERT INTO tb_fluxo_caixa_dia (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
        [valorAdicionado, dataCaixa]
      );
-     console.log('BACKEND: /api/registrar-compra - Caixa inserido:', insertCaixa);
-
-     // Buscar totais atuais
-     const [caixaRows] = await db.execute(
-       'SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixa FROM tb_fluxo_caixa'
-     );
-     const totalCaixa = parseFloat(caixaRows[0].totalCaixa);
-     const [compraRows] = await db.execute(
-       'SELECT IFNULL(SUM(valor_total),0) AS totalCompras FROM tb_compra_consolidado'
-     );
-     const totalCompras = parseFloat(compraRows[0].totalCompras);
-
-     // Calcular saldo e inserir consolidação
-     const saldoAtual = totalCaixa - totalCompras;
-     const diferenca = saldoAtual - totalCompras;
-     const [insertCons] = await db.execute(
-       'INSERT INTO tb_fluxo_caixa_consolidado (Total_Compras, Saldo_Atual, Diferenca, Data_Caixa) VALUES (?, ?, ?, ?)',
-       [totalCompras, saldoAtual, diferenca, dataCaixa]
-     );
-     console.log('BACKEND: /api/registrar-compra - Consolidado inserido:', insertCons);
-
-     // Commit da transação
-     await db.commit();
-
-     if (insertCaixa.affectedRows === 1 && insertCons.affectedRows === 1) {
-       res.json({
-         message: 'Valor adicionado e consolidação atualizada com sucesso!',
-         totalCompras,
-         totalCaixa,
-         saldoAtual
-       });
-     } else {
-       throw new Error('Falha ao inserir registros de caixa ou consolidação.');
-     }
+     console.log('BACKEND: /api/registrar-compra - Inserido em tb_fluxo_caixa_dia');
+     res.json({ message: 'Valor adicionado ao caixa do dia com sucesso!' });
    } catch (error) {
      console.error('BACKEND: Erro em /api/registrar-compra:', error);
-     await db.rollback();
      res.status(500).json({ error: 'Erro ao processar registro de caixa.', details: error.message });
+   }
+  });
+
+  // Rota para fechar o caixa: move dados de tb_fluxo_caixa_dia para tb_fluxo_caixa
+  app.post('/api/fechar-caixa', async (req, res) => {
+   console.log('BACKEND: /api/fechar-caixa - Iniciando fechamento...');
+   try {
+     await db.beginTransaction();
+
+     // Buscar registros do dia
+     const [registrosDia] = await db.execute('SELECT Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa_dia');
+
+     if (registrosDia.length > 0) {
+       // Mover para tb_fluxo_caixa
+       for (const reg of registrosDia) {
+         await db.execute(
+           'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
+           [reg.Caixa_Atual, reg.Data_Caixa]
+         );
+       }
+       // Limpar a tabela do dia
+       await db.execute('DELETE FROM tb_fluxo_caixa_dia');
+     }
+
+     // Atualizar consolidado com o saldo total acumulado
+     const now = new Date();
+     const pad = n => n.toString().padStart(2, '0');
+     const dataFechamento = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+     const [caixaRows] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixa FROM tb_fluxo_caixa');
+     const [compraRows] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS totalCompras FROM tb_compra_consolidado');
+     const totalCaixa = parseFloat(caixaRows[0].totalCaixa);
+     const totalCompras = parseFloat(compraRows[0].totalCompras);
+     const saldoAtual = totalCaixa - totalCompras;
+     await db.execute(
+       'INSERT INTO tb_fluxo_caixa_consolidado (Total_Compras, Saldo_Atual, Diferenca, Data_Caixa) VALUES (?, ?, ?, ?)',
+       [totalCompras, saldoAtual, saldoAtual - totalCompras, dataFechamento]
+     );
+
+     await db.commit();
+     console.log('BACKEND: /api/fechar-caixa - Caixa fechado com sucesso');
+     res.json({ message: 'Caixa fechado e dados movidos para o histórico com sucesso!' });
+   } catch (error) {
+     await db.rollback();
+     console.error('BACKEND: Erro em /api/fechar-caixa:', error);
+     res.status(500).json({ error: 'Erro ao fechar caixa.', details: error.message });
    }
   });
 
@@ -1028,28 +1037,17 @@ app.get('/api/health', (req, res) => {
   // Rota para obter o resumo do caixa (total de compras e saldo atual)
   app.get('/api/resumo-caixa', async (req, res) => {
    try {
-    const desde = req.query.desde ? new Date(req.query.desde) : null;
-
-    let totalComprasResult, totalCaixaResult;
-    if (desde) {
-      [totalComprasResult] = await db.execute(
-        'SELECT IFNULL(SUM(valor_total), 0) AS total FROM tb_compra_consolidado WHERE data_compra > ?',
-        [desde]
-      );
-      [totalCaixaResult] = await db.execute(
-        'SELECT IFNULL(SUM(Caixa_Atual), 0) AS total FROM tb_fluxo_caixa WHERE Data_Caixa > ?',
-        [desde]
-      );
-    } else {
-      [totalComprasResult] = await db.execute(
-        'SELECT IFNULL(SUM(valor_total), 0) AS total FROM tb_compra_consolidado WHERE DATE(data_compra) = CURDATE()'
-      );
-      [totalCaixaResult] = await db.execute(
-        'SELECT IFNULL(SUM(Caixa_Atual), 0) AS total FROM tb_fluxo_caixa WHERE DATE(Data_Caixa) = CURDATE()'
-      );
-    }
-    const totalCompras = parseFloat(totalComprasResult[0].total);
+    // totalCaixa vem da tabela do dia (sessão atual, limpa ao fechar caixa)
+    const [totalCaixaResult] = await db.execute(
+      'SELECT IFNULL(SUM(Caixa_Atual), 0) AS total FROM tb_fluxo_caixa_dia'
+    );
     const totalCaixa = parseFloat(totalCaixaResult[0].total);
+
+    // totalCompras do dia atual
+    const [totalComprasResult] = await db.execute(
+      'SELECT IFNULL(SUM(valor_total), 0) AS total FROM tb_compra_consolidado WHERE DATE(data_compra) = CURDATE()'
+    );
+    const totalCompras = parseFloat(totalComprasResult[0].total);
 
     const [saldoAtualResult] = await db.execute(
       'SELECT Saldo_Atual AS Saldo FROM tb_fluxo_caixa_consolidado ORDER BY Data_Caixa DESC LIMIT 1'

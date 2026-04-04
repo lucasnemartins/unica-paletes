@@ -28,7 +28,6 @@ export default function FluxoCaixaScreen() {
   const [selectedDate, setSelectedDate] = useState('');
   const [showDateModal, setShowDateModal] = useState(false);
   const [showFechamentoModal, setShowFechamentoModal] = useState(false);
-  const [fechadoEm, setFechadoEm] = useState<string | null>(null);
 
   // Array com os últimos 30 dias para seleção
   const last30Days = Array.from({length: 30}, (_, i) => {
@@ -43,7 +42,7 @@ export default function FluxoCaixaScreen() {
     fetchCashFlowData(date);
   };
 
-  const fetchCashFlowData = async (dateStr?: string, desde?: string | null) => {
+  const fetchCashFlowData = async (dateStr?: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -55,11 +54,7 @@ export default function FluxoCaixaScreen() {
       const response = await axios.get(url);
       setCashFlowHistory(response.data);
 
-      const desdeParam = desde !== undefined ? desde : fechadoEm;
-      const resumoUrl = desdeParam
-        ? `${API_URL}/api/resumo-caixa?desde=${encodeURIComponent(desdeParam)}`
-        : `${API_URL}/api/resumo-caixa`;
-      const resumoResponse = await axios.get(resumoUrl);
+      const resumoResponse = await axios.get(`${API_URL}/api/resumo-caixa`);
       setTotalCompras(resumoResponse.data.totalCompras || 0);
       setSaldoAtual(resumoResponse.data.saldoAtual || 0);
       setTotalCaixa(resumoResponse.data.totalCaixa || 0);
@@ -101,7 +96,7 @@ export default function FluxoCaixaScreen() {
 
       console.log('Resposta:', response.data);
       setCompraInput('');
-      fetchCashFlowData(selectedDate, fechadoEm);
+      fetchCashFlowData(selectedDate);
     } catch (err) {
       console.error('Erro ao adicionar compra:', err);
       setError('Erro ao adicionar compra');
@@ -114,13 +109,20 @@ export default function FluxoCaixaScreen() {
     setShowFechamentoModal(true);
   };
 
-  const confirmarFechamento = () => {
-    const agora = new Date().toISOString();
-    setShowFechamentoModal(false);
-    setTotalCaixa(0);
-    setTotalCompras(0);
-    setFechadoEm(agora);
-    window.alert(`✓ Caixa fechado!\n\nTotal adicionado hoje: € ${totalCaixa.toFixed(2)}\nTotal de compras: € ${totalCompras.toFixed(2)}\nSaldo atual: € ${saldoAtual.toFixed(2)}`);
+  const confirmarFechamento = async () => {
+    try {
+      setLoading(true);
+      await axios.post(`${API_URL}/api/fechar-caixa`);
+      setShowFechamentoModal(false);
+      setTotalCaixa(0);
+      setTotalCompras(0);
+      window.alert(`✓ Caixa fechado!\n\nTotal adicionado: € ${totalCaixa.toFixed(2)}\nTotal de compras: € ${totalCompras.toFixed(2)}\nSaldo atual: € ${saldoAtual.toFixed(2)}`);
+    } catch (err) {
+      setShowFechamentoModal(false);
+      setError('Erro ao fechar caixa. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const goBackToMenu = () => {
