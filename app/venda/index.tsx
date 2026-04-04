@@ -117,7 +117,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet,
   };
 
   const handleVlUniVendaChange = (text: string) => {
-   setVlUniVendaInput(text);
+   setVlUniVendaInput(text.replace(',', '.'));
   };
 
   const handleNomePalletManualChange = (text: string) => {
