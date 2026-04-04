@@ -27,12 +27,16 @@ export default function LoginScreen() {
       const result = await signIn.create({ identifier: email, password });
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
+      } else if (result.status === 'needs_first_factor') {
+        setError('Verificação adicional necessária. Contacta o administrador.');
+      } else if (result.status === 'needs_second_factor') {
+        setError('Autenticação de dois fatores necessária. Desativa o 2FA no Clerk.');
       } else {
-        setError('Falha no login. Verifique as credenciais.');
+        setError(`Status inesperado: ${result.status}`);
       }
     } catch (err: any) {
-      const msg = err?.errors?.[0]?.message || 'Email ou senha inválidos.';
-      setError(msg);
+      const clerkMsg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'Email ou senha inválidos.';
+      setError(clerkMsg);
     } finally {
       setLoading(false);
     }
