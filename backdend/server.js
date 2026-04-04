@@ -942,16 +942,14 @@ app.get('/api/health', (req, res) => {
 
      // 1. Gravar total da sessão em tb_fluxo_caixa_historico (um registo consolidado por fechamento)
      const [[{ totalSessaoCaixa }]] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalSessaoCaixa FROM tb_fluxo_caixa');
-     const [idCaixaRows] = await db.execute('SELECT MAX(id_caixa) AS maxId FROM tb_fluxo_caixa');
-     const idOriginalCaixa = idCaixaRows[0]?.maxId != null ? idCaixaRows[0].maxId : null;
      const [[{ totalSessaoCompras }]] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS totalSessaoCompras FROM tb_compra_consolidado');
      const totalCaixaSessao = parseFloat(totalSessaoCaixa);
      const totalComprasSessao = parseFloat(totalSessaoCompras);
      const diferencaSessao = totalCaixaSessao - totalComprasSessao;
      if (totalCaixaSessao > 0 || totalComprasSessao > 0) {
        await db.execute(
-         'INSERT INTO tb_fluxo_caixa_historico (id_original, Caixa_Atual, Total_Compras, Diferenca, Data_Caixa) VALUES (?, ?, ?, ?, ?)',
-         [idOriginalCaixa, totalCaixaSessao, totalComprasSessao, diferencaSessao, dataFechamento]
+         'INSERT INTO tb_fluxo_caixa_historico (Caixa_Atual, Total_Compras, Diferenca, Data_Caixa) VALUES (?, ?, ?, ?)',
+         [totalCaixaSessao, totalComprasSessao, diferencaSessao, dataFechamento]
        );
      }
      await db.execute('DELETE FROM tb_fluxo_caixa');
@@ -1025,7 +1023,7 @@ app.get('/api/health', (req, res) => {
   app.get('/api/fluxo-caixa/historico', async (req, res) => {
    const { data } = req.query;
    try {
-    let query = 'SELECT id_caixa, id_original, Caixa_Atual, Total_Compras, Diferenca, Data_Caixa FROM tb_fluxo_caixa_historico WHERE Caixa_Atual > 0 OR Total_Compras > 0';
+    let query = 'SELECT id_caixa, Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa_historico WHERE Caixa_Atual > 0';
     const queryParams = [];
 
     if (data) {
@@ -1064,7 +1062,7 @@ app.get('/api/health', (req, res) => {
    }
    try {
     const [result] = await db.execute(
-     'SELECT id_caixa, id_original, Caixa_Atual, Total_Compras, Diferenca, Data_Caixa FROM tb_fluxo_caixa_historico WHERE (Caixa_Atual > 0 OR Total_Compras > 0) AND Data_Caixa >= ? AND Data_Caixa <= ? ORDER BY Data_Caixa DESC',
+     'SELECT id_caixa, Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa_historico WHERE Caixa_Atual > 0 AND Data_Caixa >= ? AND Data_Caixa <= ? ORDER BY Data_Caixa DESC',
      [dataInicio, dataFim + ' 23:59:59']
     );
     res.json(result);
