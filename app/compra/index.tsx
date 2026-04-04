@@ -42,6 +42,7 @@ export default function HomeScreen() {
   const [selectedCompraId, setSelectedCompraId] = useState<number | null>(null);
   const [fotosHistorico, setFotosHistorico] = useState<string[]>([]);
   const [loadingFotos, setLoadingFotos] = useState(false);
+  const [fotoExpandida, setFotoExpandida] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPallets = async () => {
@@ -508,7 +509,12 @@ export default function HomeScreen() {
                   ) : fotosHistorico.length > 0 ? (
                     <View style={styles.fotosGrid}>
                       {fotosHistorico.map((url, idx) => (
-                        <Image key={idx} source={{ uri: url }} style={styles.fotoHistorico} resizeMode="cover" />
+                        <TouchableOpacity key={idx} onPress={() => setFotoExpandida(url)} activeOpacity={0.85}>
+                          <Image source={{ uri: url }} style={styles.fotoHistorico} resizeMode="cover" />
+                          <View style={styles.fotoOverlay}>
+                            <FontAwesome name="search-plus" size={18} color="white" />
+                          </View>
+                        </TouchableOpacity>
                       ))}
                     </View>
                   ) : (
@@ -519,6 +525,19 @@ export default function HomeScreen() {
             </ScrollView>
           </View>
         </View>
+      </Modal>
+      {/* Lightbox — foto expandida */}
+      <Modal visible={!!fotoExpandida} transparent animationType="fade" onRequestClose={() => setFotoExpandida(null)}>
+        <TouchableOpacity style={styles.lightboxOverlay} activeOpacity={1} onPress={() => setFotoExpandida(null)}>
+          <Image
+            source={{ uri: fotoExpandida ?? '' }}
+            style={styles.lightboxImage}
+            resizeMode="contain"
+          />
+          <TouchableOpacity style={styles.lightboxClose} onPress={() => setFotoExpandida(null)}>
+            <FontAwesome name="times-circle" size={36} color="white" />
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </ImageBackground>
   );
@@ -701,5 +720,29 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     marginVertical: 16,
+  },
+  fotoOverlay: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  lightboxOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lightboxImage: {
+    width: '95%',
+    height: '80%',
+    borderRadius: 8,
+  },
+  lightboxClose: {
+    position: 'absolute',
+    top: 48,
+    right: 20,
   },
 });
