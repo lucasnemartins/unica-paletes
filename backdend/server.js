@@ -659,24 +659,23 @@ app.get('/api/health', (req, res) => {
       const base64Time = Date.now() - base64StartTime;
       console.log(`BACKEND: Tempo de processamento base64: ${base64Time}ms`);
 
-      // Fazer upload para o Cloudflare Images
-      const cloudflareStartTime = Date.now();
+      // Comprimir imagem com sharp e salvar base64 no MongoDB
+      const processStartTime = Date.now();
       const fileName = `image_${Date.now()}.jpg`;
       const base64Clean = base64Data.replace(/^data:image\/\w+;base64,/, '');
       const buffer = Buffer.from(base64Clean, 'base64');
       const compressedBuffer = await compressImage(buffer);
-      const imageBuffer = compressedBuffer || buffer;
-      const cloudflareResult = await uploadToCloudflare(imageBuffer, fileName);
-      const imageUrl = `https://imagedelivery.net/${process.env.CLOUDFLARE_ACCOUNT_HASH}/${cloudflareResult.id}/public`;
-      const cloudflareTime = Date.now() - cloudflareStartTime;
-      console.log(`BACKEND: Upload para Cloudflare: ${cloudflareTime}ms → ${imageUrl}`);
+      const finalBuffer = compressedBuffer || buffer;
+      const finalBase64 = `data:image/jpeg;base64,${finalBuffer.toString('base64')}`;
+      const processTime = Date.now() - processStartTime;
+      console.log(`BACKEND: Compressão: ${processTime}ms, tamanho final: ${Math.round(finalBuffer.length / 1024)}KB`);
 
-      // Salvar URL do Cloudflare no MongoDB (não o base64)
+      // Salvar base64 comprimido no MongoDB
       const mongoStartTime = Date.now();
       const created = await FotoCompra.create({
         id_compra: parseInt(idCompra),
         file_name: fileName,
-        url: imageUrl,
+        url: finalBase64,
         created_at: new Date(),
         quantidade: req.body.quantidade ? Number(req.body.quantidade) : 0,
         valor: req.body.valor ? Number(req.body.valor) : 0
@@ -687,7 +686,7 @@ app.get('/api/health', (req, res) => {
       // Atualizar compra em background sem esperar
       Compra.findOneAndUpdate(
         { id_compra: parseInt(idCompra) },
-        { $push: { photos: imageUrl } },
+        { $push: { photos: finalBase64 } },
         { new: true, upsert: true }
       ).catch(err => console.error('Erro ao atualizar compra:', err));
 
@@ -696,10 +695,10 @@ app.get('/api/health', (req, res) => {
 
       res.json({
         message: 'Foto da compra registrada com sucesso!',
-        url: imageUrl,
+        url: finalBase64,
         metadata: created,
         performance: {
-          cloudflareTime,
+          processTime,
           mongoTime,
           totalTime
         }
@@ -712,30 +711,56 @@ app.get('/api/health', (req, res) => {
     }
   });
 
-  // Rota para verificar fotos de uma compra (otimizada)
+  // Rota para verificar fotos de uma compra — retorna metadados sem o base64
   app.get('/api/mongo/compras/:id/fotos', async (req, res) => {
     try {
       const idCompra = parseInt(req.params.id);
       
-      // Verificar conexão com MongoDB
       if (mongoose.connection.readyState !== 1) {
         throw new Error('MongoDB não está conectado');
       }
 
-      // Buscar fotos usando índice e projeção para retornar apenas campos necessários
       const fotos = await FotoCompra.find(
         { id_compra: idCompra },
-        { _id: 1, url: 1, file_name: 1, created_at: 1, quantidade: 1, valor: 1 }
+        { _id: 1, file_name: 1, created_at: 1, quantidade: 1, valor: 1 }
       )
       .sort({ created_at: -1 })
       .lean();
+
+      // Retorna a URL de imagem servida pelo backend (sem base64 no JSON)
+      const fotosComUrl = fotos.map(f => ({
+        ...f,
+        url: `/api/foto/${f._id}`,
+      }));
       
       console.log('BACKEND: Fotos encontradas:', fotos.length);
-      res.json(fotos);
+      res.json(fotosComUrl);
 
     } catch (err) {
       console.error('BACKEND: Erro ao buscar fotos:', err);
       res.status(500).send('Erro ao buscar fotos: ' + err.message);
+    }
+  });
+
+  // Serve uma foto como imagem HTTP (converte base64 → binário)
+  app.get('/api/foto/:id', async (req, res) => {
+    try {
+      const foto = await FotoCompra.findById(req.params.id, { url: 1 }).lean();
+      if (!foto) return res.status(404).send('Foto não encontrada');
+
+      const url = foto.url || '';
+      if (url.startsWith('data:')) {
+        const base64 = url.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64, 'base64');
+        res.set('Content-Type', 'image/jpeg');
+        res.set('Cache-Control', 'public, max-age=86400');
+        return res.send(buffer);
+      }
+      // Se for URL externa (Cloudflare), redireciona
+      res.redirect(url);
+    } catch (err) {
+      console.error('BACKEND: Erro ao servir foto:', err);
+      res.status(500).send('Erro ao servir foto');
     }
   });
 

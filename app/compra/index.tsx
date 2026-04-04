@@ -209,7 +209,9 @@ export default function HomeScreen() {
     if (!purchaseId) return;
     try {
       const response = await axios.get(`${API_URL}/api/mongo/compras/${purchaseId}/fotos`);
-      const urls = response.data.map((f: any) => f.url);
+      const urls = response.data.map((f: any) =>
+        f.url.startsWith('/api/') ? `${API_URL}${f.url}` : f.url
+      );
       setPhotos(urls);
     } catch (error) {
       console.error('Erro ao buscar fotos:', error);
@@ -254,7 +256,9 @@ export default function HomeScreen() {
       setSelectedCompraId(idCompra);
       setFotosHistorico([]);
       const response = await axios.get(`${API_URL}/api/mongo/compras/${idCompra}/fotos`);
-      const urls = response.data.map((f: any) => f.url);
+      const urls = response.data.map((f: any) =>
+        f.url.startsWith('/api/') ? `${API_URL}${f.url}` : f.url
+      );
       setFotosHistorico(urls);
       if (urls.length === 0) {
         Alert.alert('Sem fotos', 'Nenhuma foto encontrada para esta compra.');
