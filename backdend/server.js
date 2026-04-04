@@ -474,11 +474,10 @@ app.get('/api/health', (req, res) => {
 
     // Atualizar tb_fluxo_caixa_consolidado após registrar a compra
     try {
-      // Buscar totais atuais
-      const [caixaRows] = await db.execute(
-        'SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixa FROM tb_fluxo_caixa'
-      );
-      const totalCaixa = parseFloat(caixaRows[0].totalCaixa);
+      // Buscar totais acumulados (histórico + sessão atual)
+      const [[{ totalHist }]] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalHist FROM tb_fluxo_caixa_historico');
+      const [[{ totalSess }]] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalSess FROM tb_fluxo_caixa');
+      const totalCaixa = parseFloat(totalHist) + parseFloat(totalSess);
       const [compraRows] = await db.execute(
         'SELECT IFNULL(SUM(valor_total),0) AS totalCompras FROM tb_compra_consolidado'
       );
@@ -918,45 +917,45 @@ app.get('/api/health', (req, res) => {
    const dataCaixa = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
    try {
-     // Inserir na tabela do dia (temporária)
+     // Inserir na tabela de sessão atual
      await db.execute(
-       'INSERT INTO tb_fluxo_caixa_dia (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
+       'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
        [valorAdicionado, dataCaixa]
      );
-     console.log('BACKEND: /api/registrar-compra - Inserido em tb_fluxo_caixa_dia');
-     res.json({ message: 'Valor adicionado ao caixa do dia com sucesso!' });
+     console.log('BACKEND: /api/registrar-compra - Inserido em tb_fluxo_caixa');
+     res.json({ message: 'Valor adicionado ao caixa com sucesso!' });
    } catch (error) {
      console.error('BACKEND: Erro em /api/registrar-compra:', error);
      res.status(500).json({ error: 'Erro ao processar registro de caixa.', details: error.message });
    }
   });
 
-  // Rota para fechar o caixa: move dados de tb_fluxo_caixa_dia para tb_fluxo_caixa
+  // Rota para fechar o caixa: move dados de tb_fluxo_caixa (sessão) para tb_fluxo_caixa_historico
   app.post('/api/fechar-caixa', async (req, res) => {
    console.log('BACKEND: /api/fechar-caixa - Iniciando fechamento...');
    try {
      await db.beginTransaction();
 
-     // Buscar registros do dia
-     const [registrosDia] = await db.execute('SELECT Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa_dia');
+     // Buscar registros da sessão atual
+     const [registrosSessao] = await db.execute('SELECT Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa');
 
-     if (registrosDia.length > 0) {
-       // Mover para tb_fluxo_caixa
-       for (const reg of registrosDia) {
+     if (registrosSessao.length > 0) {
+       // Mover para tb_fluxo_caixa_historico
+       for (const reg of registrosSessao) {
          await db.execute(
-           'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
+           'INSERT INTO tb_fluxo_caixa_historico (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
            [reg.Caixa_Atual, reg.Data_Caixa]
          );
        }
-       // Limpar a tabela do dia
-       await db.execute('DELETE FROM tb_fluxo_caixa_dia');
+       // Limpar a sessão atual
+       await db.execute('DELETE FROM tb_fluxo_caixa');
      }
 
-     // Atualizar consolidado com o saldo total acumulado
+     // Registrar consolidado com totais acumulados do histórico
      const now = new Date();
      const pad = n => n.toString().padStart(2, '0');
      const dataFechamento = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-     const [caixaRows] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixa FROM tb_fluxo_caixa');
+     const [caixaRows] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixa FROM tb_fluxo_caixa_historico');
      const [compraRows] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS totalCompras FROM tb_compra_consolidado');
      const totalCaixa = parseFloat(caixaRows[0].totalCaixa);
      const totalCompras = parseFloat(compraRows[0].totalCompras);
@@ -977,22 +976,20 @@ app.get('/api/health', (req, res) => {
   });
 
   // Rota para listar todos os registros do fluxo de caixa
+  // Sessão atual (tb_fluxo_caixa)
   app.get('/api/fluxo-caixa', async (req, res) => {
    const { data } = req.query;
    try {
     let query = 'SELECT id_caixa, Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa WHERE Caixa_Atual > 0';
     const queryParams = [];
- 
+
     if (data) {
      query += ' AND DATE(Data_Caixa) = ?';
      queryParams.push(data);
-     console.log('BACKEND: Filtrando por data:', data);
     }
- 
+
     query += ' ORDER BY Data_Caixa DESC';
- 
     const [result] = await db.execute(query, queryParams);
-    console.log('BACKEND: Resultados da consulta:', result);
     res.json(result);
    } catch (err) {
     console.error('BACKEND: Erro ao buscar registros do fluxo de caixa:', err);
@@ -1000,7 +997,27 @@ app.get('/api/health', (req, res) => {
    }
   });
 
-  // Rota para buscar um registro específico do fluxo de caixa pelo seu id_caixa (se houver um id)
+  // Histórico permanente (tb_fluxo_caixa_historico)
+  app.get('/api/fluxo-caixa/historico', async (req, res) => {
+   const { data } = req.query;
+   try {
+    let query = 'SELECT id_caixa, Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa_historico WHERE Caixa_Atual > 0';
+    const queryParams = [];
+
+    if (data) {
+     query += ' AND DATE(Data_Caixa) = ?';
+     queryParams.push(data);
+    }
+
+    query += ' ORDER BY Data_Caixa DESC LIMIT 100';
+    const [result] = await db.execute(query, queryParams);
+    res.json(result);
+   } catch (err) {
+    console.error('BACKEND: Erro ao buscar histórico do fluxo de caixa:', err);
+    return res.status(500).send('Erro ao buscar histórico do fluxo de caixa');
+   }
+  });
+
   app.get('/api/fluxo-caixa/:id', async (req, res) => {
    const idCaixa = req.params.id;
    try {
@@ -1016,7 +1033,6 @@ app.get('/api/health', (req, res) => {
    }
   });
 
-  // Rota para filtrar o fluxo de caixa por período
   app.get('/api/fluxo-caixa/periodo', async (req, res) => {
    const { dataInicio, dataFim } = req.query;
    if (!dataInicio || !dataFim) {
@@ -1024,7 +1040,7 @@ app.get('/api/health', (req, res) => {
    }
    try {
     const [result] = await db.execute(
-     'SELECT id_caixa, Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa WHERE Caixa_Atual > 0 AND Data_Caixa >= ? AND Data_Caixa <= ? ORDER BY Data_Caixa DESC',
+     'SELECT id_caixa, Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa_historico WHERE Caixa_Atual > 0 AND Data_Caixa >= ? AND Data_Caixa <= ? ORDER BY Data_Caixa DESC',
      [dataInicio, dataFim + ' 23:59:59']
     );
     res.json(result);
@@ -1037,9 +1053,9 @@ app.get('/api/health', (req, res) => {
   // Rota para obter o resumo do caixa (total de compras e saldo atual)
   app.get('/api/resumo-caixa', async (req, res) => {
    try {
-    // totalCaixa vem da tabela do dia (sessão atual, limpa ao fechar caixa)
+    // totalCaixa vem da sessão atual (limpa ao fechar caixa)
     const [totalCaixaResult] = await db.execute(
-      'SELECT IFNULL(SUM(Caixa_Atual), 0) AS total FROM tb_fluxo_caixa_dia'
+      'SELECT IFNULL(SUM(Caixa_Atual), 0) AS total FROM tb_fluxo_caixa'
     );
     const totalCaixa = parseFloat(totalCaixaResult[0].total);
 
