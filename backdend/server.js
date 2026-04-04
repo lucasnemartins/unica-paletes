@@ -1028,8 +1028,10 @@ app.get('/api/health', (req, res) => {
   // Rota para obter o resumo do caixa (total de compras e saldo atual)
   app.get('/api/resumo-caixa', async (req, res) => {
    try {
-    const [totalComprasResult] = await db.execute('SELECT SUM(Valor_Total) AS total FROM tb_compra_consolidado');
-    const totalCompras = totalComprasResult[0]?.total ? parseFloat(totalComprasResult[0].total) : 0;
+    const [totalComprasResult] = await db.execute(
+      'SELECT IFNULL(SUM(valor_total), 0) AS total FROM tb_compra_consolidado WHERE DATE(data_compra) = CURDATE()'
+    );
+    const totalCompras = parseFloat(totalComprasResult[0].total);
 
     const [totalCaixaResult] = await db.execute(
       'SELECT IFNULL(SUM(Caixa_Atual), 0) AS total FROM tb_fluxo_caixa WHERE DATE(Data_Caixa) = CURDATE()'
