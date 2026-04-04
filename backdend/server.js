@@ -1065,10 +1065,11 @@ app.get('/api/health', (req, res) => {
     );
     const totalCompras = parseFloat(totalComprasResult[0].total);
 
-    const [saldoAtualResult] = await db.execute(
-      'SELECT Saldo_Atual AS Saldo FROM tb_fluxo_caixa_consolidado ORDER BY Data_Caixa DESC LIMIT 1'
-    );
-    const saldoAtual = saldoAtualResult[0]?.Saldo ? parseFloat(saldoAtualResult[0].Saldo) : 0;
+    const [[{ totalHist }]] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalHist FROM tb_fluxo_caixa_historico');
+    const totalCaixaGeral = parseFloat(totalHist) + totalCaixa;
+    const [totalComprasGeralResult] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS total FROM tb_compra_consolidado');
+    const totalComprasGeral = parseFloat(totalComprasGeralResult[0].total);
+    const saldoAtual = totalCaixaGeral - totalComprasGeral;
 
     res.json({
      totalCompras,
