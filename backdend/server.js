@@ -965,11 +965,11 @@ app.get('/api/health', (req, res) => {
      await db.execute('DELETE FROM tb_compra');
 
      // 3. Mover tb_compra_consolidado (sessão) → tb_compra_consolidado_historico
-     const [registrosConsolidado] = await db.execute('SELECT data_compra, Qt_Total, valor_total FROM tb_compra_consolidado');
+     const [registrosConsolidado] = await db.execute('SELECT id, data_compra, Qt_Total, valor_total FROM tb_compra_consolidado');
      for (const reg of registrosConsolidado) {
        await db.execute(
-         'INSERT INTO tb_compra_consolidado_historico (data_compra, Qt_Total, valor_total) VALUES (?, ?, ?)',
-         [reg.data_compra, reg.Qt_Total, reg.valor_total]
+         'INSERT INTO tb_compra_consolidado_historico (id_original, data_compra, Qt_Total, valor_total) VALUES (?, ?, ?, ?)',
+         [reg.id, reg.data_compra, reg.Qt_Total, reg.valor_total]
        );
      }
      await db.execute('DELETE FROM tb_compra_consolidado');
