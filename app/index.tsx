@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
- import React from 'react';
- import { View, TouchableOpacity, StyleSheet, ImageBackground, Text } from 'react-native';
- import { useNavigation } from '@react-navigation/native'; // Import useNavigation
+import React from 'react';
+import { View, TouchableOpacity, StyleSheet, ImageBackground, Text } from 'react-native';
+import { useAuth } from '@clerk/clerk-expo';
 
- export default function HomeScreen() {
+export default function HomeScreen() {
   const router = useRouter();
+  const { signOut } = useAuth();
 
   const irParaCompra = () => {
     router.push('/compra');
@@ -26,10 +27,14 @@ import { useRouter } from 'expo-router';
 
   return (
     <ImageBackground
-      source={require('./assets/fundo_com_logo.png')} // Ajuste o caminho conforme necessário
+      source={require('./assets/fundo_com_logo.png')}
       style={styles.background}
       resizeMode="cover"
     >
+      <TouchableOpacity style={styles.logoutButton} onPress={() => signOut()}>
+        <Text style={styles.logoutText}>Sair</Text>
+      </TouchableOpacity>
+
       <View style={styles.container}>
         <View style={styles.buttonContainer}>
           <View style={styles.row}>
@@ -97,7 +102,22 @@ import { useRouter } from 'expo-router';
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 16, // Reduzi um pouco o tamanho da fonte para melhor encaixe
+    fontSize: 16,
     textAlign: 'center',
+  },
+  logoutButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    zIndex: 10,
+  },
+  logoutText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
  });
