@@ -976,7 +976,7 @@ app.get('/api/health', (req, res) => {
      const [registrosConsolidado] = await db.execute('SELECT id, data_compra, Qt_Total, valor_total FROM tb_compra_consolidado');
      for (const reg of registrosConsolidado) {
        await db.execute(
-         'INSERT INTO tb_compra_consolidado_historico (id_original, data_compra, Qt_Total, valor_total) VALUES (?, ?, ?, ?)',
+         'INSERT INTO tb_compra_consolidado_historico (id, data_compra, Qt_Total, valor_total) VALUES (?, ?, ?, ?)',
          [reg.id, reg.data_compra, reg.Qt_Total, reg.valor_total]
        );
      }
