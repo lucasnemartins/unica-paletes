@@ -48,8 +48,8 @@ export default function FluxoCaixaScreen() {
       setError(null);
       
       const url = dateStr 
-        ? `${API_URL}/api/fluxo-caixa?data=${dateStr}`
-        : `${API_URL}/api/fluxo-caixa`;
+        ? `${API_URL}/api/fluxo-caixa/historico?data=${dateStr}`
+        : `${API_URL}/api/fluxo-caixa/historico`;
       
       const response = await axios.get(url);
       setCashFlowHistory(response.data);
