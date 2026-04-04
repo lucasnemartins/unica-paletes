@@ -1,23 +1,23 @@
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, usePathname } from 'expo-router';
 import React, { useEffect } from 'react';
 
 const PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
 
 function InitialLayout() {
   const { isLoaded, isSignedIn } = useAuth();
-  const segments = useSegments();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoaded) return;
-    const inLoginPage = segments[0] === 'login';
+    const inLoginPage = pathname === '/login';
     if (!isSignedIn && !inLoginPage) {
       router.replace('/login');
     } else if (isSignedIn && inLoginPage) {
       router.replace('/');
     }
-  }, [isLoaded, isSignedIn, segments]);
+  }, [isLoaded, isSignedIn, pathname]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -32,6 +32,9 @@ function InitialLayout() {
 }
 
 export default function RootLayout() {
+  if (!PUBLISHABLE_KEY) {
+    console.error('EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY não definida');
+  }
   return (
     <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
       <InitialLayout />
