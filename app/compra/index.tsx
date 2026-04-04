@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet, ImageBackground, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet, ImageBackground, Image, ActivityIndicator, Modal } from 'react-native';
 import axios, { AxiosResponse } from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { FontAwesome } from '@expo/vector-icons';
@@ -29,6 +29,19 @@ export default function HomeScreen() {
   const [photos, setPhotos] = useState<string[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
+
+  interface HistoricoCompra {
+    id: number;
+    data_compra: string;
+    Qt_Total: number;
+    valor_total: number;
+  }
+  const [showHistorico, setShowHistorico] = useState(false);
+  const [historico, setHistorico] = useState<HistoricoCompra[]>([]);
+  const [loadingHistorico, setLoadingHistorico] = useState(false);
+  const [selectedCompraId, setSelectedCompraId] = useState<number | null>(null);
+  const [fotosHistorico, setFotosHistorico] = useState<string[]>([]);
+  const [loadingFotos, setLoadingFotos] = useState(false);
 
   useEffect(() => {
     const fetchPallets = async () => {
@@ -222,6 +235,37 @@ export default function HomeScreen() {
     }
   };
 
+  const fetchHistorico = async () => {
+    try {
+      setLoadingHistorico(true);
+      const response = await axios.get(`${API_URL}/api/compras/historico`);
+      setHistorico(response.data);
+      setShowHistorico(true);
+    } catch (err: any) {
+      Alert.alert('Erro', 'Falha ao buscar histórico de compras.');
+    } finally {
+      setLoadingHistorico(false);
+    }
+  };
+
+  const fetchFotosHistorico = async (idCompra: number) => {
+    try {
+      setLoadingFotos(true);
+      setSelectedCompraId(idCompra);
+      setFotosHistorico([]);
+      const response = await axios.get(`${API_URL}/api/mongo/compras/${idCompra}/fotos`);
+      const urls = response.data.map((f: any) => f.url).filter((url: string) => !url.startsWith('data:'));
+      setFotosHistorico(urls);
+      if (urls.length === 0) {
+        Alert.alert('Sem fotos', 'Nenhuma foto encontrada para esta compra.');
+      }
+    } catch (err: any) {
+      Alert.alert('Erro', 'Falha ao buscar fotos.');
+    } finally {
+      setLoadingFotos(false);
+    }
+  };
+
   // Envia todas as fotos pendentes ao servidor
   const uploadAllPhotos = async () => {
     console.log('▶️ uploadAllPhotos chamado', { purchaseId, pendingPhotos });
@@ -406,7 +450,72 @@ export default function HomeScreen() {
             </View>
           )}
         </View>
+
+        {/* Botão Histórico de Compras */}
+        <TouchableOpacity
+          style={[styles.button, styles.historicoButton]}
+          onPress={fetchHistorico}
+          disabled={loadingHistorico}
+        >
+          <FontAwesome name="history" size={18} color="white" style={{ marginRight: 8 }} />
+          <Text style={styles.buttonText}>
+            {loadingHistorico ? 'Carregando...' : 'Histórico de Compras'}
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Modal de Histórico */}
+      <Modal visible={showHistorico} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Histórico de Compras</Text>
+              <TouchableOpacity onPress={() => { setShowHistorico(false); setSelectedCompraId(null); setFotosHistorico([]); }}>
+                <FontAwesome name="times" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView>
+              {historico.map((compra) => (
+                <TouchableOpacity
+                  key={compra.id}
+                  style={[styles.historicoItem, selectedCompraId === compra.id && styles.historicoItemSelected]}
+                  onPress={() => fetchFotosHistorico(compra.id)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.historicoData}>
+                      {new Date(compra.data_compra).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                    <Text style={styles.historicoInfo}>
+                      {compra.Qt_Total} paletes · R$ {Number(compra.valor_total).toFixed(2)}
+                    </Text>
+                  </View>
+                  <FontAwesome name="camera" size={16} color="#b8934b" />
+                </TouchableOpacity>
+              ))}
+
+              {/* Fotos da compra selecionada */}
+              {selectedCompraId && (
+                <View style={styles.fotosSection}>
+                  <Text style={styles.fotosSectionTitle}>
+                    Fotos da Compra #{selectedCompraId}
+                  </Text>
+                  {loadingFotos ? (
+                    <ActivityIndicator color="#b8934b" style={{ marginVertical: 20 }} />
+                  ) : fotosHistorico.length > 0 ? (
+                    <View style={styles.fotosGrid}>
+                      {fotosHistorico.map((url, idx) => (
+                        <Image key={idx} source={{ uri: url }} style={styles.fotoHistorico} resizeMode="cover" />
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.semFotosText}>Nenhuma foto disponível</Text>
+                  )}
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ImageBackground>
   );
 }
@@ -508,5 +617,85 @@ const styles = StyleSheet.create({
     height: 100,
     margin: 5,
     borderRadius: 8,
+  },
+  historicoButton: {
+    alignSelf: 'center',
+    marginTop: 20,
+    marginBottom: 10,
+    backgroundColor: '#7a6030',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  historicoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: '#f9f5ee',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e0d5c0',
+  },
+  historicoItemSelected: {
+    borderColor: '#b8934b',
+    backgroundColor: '#fdf4e3',
+  },
+  historicoData: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+  historicoInfo: {
+    fontSize: 13,
+    color: '#777',
+    marginTop: 2,
+  },
+  fotosSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  fotosSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#b8934b',
+    marginBottom: 12,
+  },
+  fotosGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  fotoHistorico: {
+    width: 120,
+    height: 120,
+    borderRadius: 10,
+  },
+  semFotosText: {
+    color: '#999',
+    textAlign: 'center',
+    marginVertical: 16,
   },
 });
