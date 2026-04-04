@@ -113,6 +113,7 @@ export default function FluxoCaixaScreen() {
   const confirmarFechamento = () => {
     setShowFechamentoModal(false);
     setTotalCaixa(0);
+    setTotalCompras(0);
     window.alert(`✓ Caixa do dia fechado!\n\nTotal adicionado hoje: € ${totalCaixa.toFixed(2)}\nTotal de compras: € ${totalCompras.toFixed(2)}\nSaldo atual: € ${saldoAtual.toFixed(2)}`);
   };
 
