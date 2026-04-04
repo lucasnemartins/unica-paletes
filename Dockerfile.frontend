@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY package*.json ./
 
+# cache-bust: 2026-04-04
 RUN npm install --legacy-peer-deps
 
 COPY . .
