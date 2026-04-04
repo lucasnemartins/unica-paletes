@@ -2,8 +2,8 @@
  // ARQUIVO: frontend/SaleScreen.tsx (QT ESTOQUE ESQUERDA, FORMATO EURO SEM CONVERSÃO - DROPDOWN UNIFICADO PARA IOS E ANDROID)
  // ==========================================================================
 
- import React, { useState, useEffect } from 'react';
- import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet, ImageBackground } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet, ImageBackground } from 'react-native';
  import axios, { AxiosResponse } from 'axios';
  import { useRouter } from 'expo-router';
  import { FontAwesome } from '@expo/vector-icons';
@@ -235,51 +235,43 @@
 </View>
 
      <View style={styles.container}>
-      <View style={styles.inputRow}>
-       <View style={styles.inputWrapper}>
-        {loading && availablePallets.length === 0 ? (
-         <Text>Carregando pallets...</Text>
-        ) : error ? (
-         <Text style={styles.errorText}>{error}</Text>
-        ) : (
-         <View>
-          <TouchableOpacity style={styles.customDropdownTrigger} onPress={toggleDropdown}>
-           <Text style={styles.customDropdownText}>
-            {selectedCdPallet || 'Cd Pallet'}
-           </Text>
-          </TouchableOpacity>
-
-          {isDropdownVisible && (
-           <View style={styles.customDropdownListContainer}>
-            <ScrollView style={styles.customDropdownList}>
-             {availablePallets.map((pallet) => (
+      <View style={[styles.inputRow, { zIndex: 100 }]}>
+       <View style={[styles.inputWrapper, { zIndex: 100 }]}>
+        <Text style={styles.label}>Cd Pallet:</Text>
+        <TouchableOpacity style={styles.customDropdownTrigger} onPress={toggleDropdown}>
+          <Text style={styles.customDropdownText}>{selectedCdPallet || 'Selecionar...'}</Text>
+          <FontAwesome name={isDropdownVisible ? 'chevron-up' : 'chevron-down'} size={12} color="#666" />
+        </TouchableOpacity>
+        {isDropdownVisible && (
+          <View style={styles.customDropdownListContainer}>
+            <ScrollView style={styles.customDropdownList} nestedScrollEnabled>
               <TouchableOpacity
-               key={pallet.Cd_Pallet}
-               style={styles.customDropdownItem}
-               onPress={() => handleCdPalletSelectCustom(pallet.Cd_Pallet)}
+                style={styles.customDropdownItem}
+                onPress={() => {
+                  setSelectedCdPallet(null);
+                  setCdPalletInput('');
+                  setPalletDetails(null);
+                  setNomePalletManual('');
+                  setIsDropdownVisible(false);
+                }}
               >
-               <Text style={styles.customDropdownItemText}>{pallet.Cd_Pallet}</Text>
+                <Text style={{ color: '#999' }}>Selecionar...</Text>
               </TouchableOpacity>
-             ))}
-             <TouchableOpacity
-              style={styles.customDropdownItem}
-              onPress={() => {
-               setSelectedCdPallet(null);
-               setCdPalletInput('');
-               setPalletDetails(null);
-               setNomePalletManual('');
-               setIsDropdownVisible(false);
-              }}
-             >
-              <Text style={{ color: '#999' }}>Cd Pallet</Text>
-             </TouchableOpacity>
+              {availablePallets.map((pallet) => (
+                <TouchableOpacity
+                  key={pallet.Cd_Pallet}
+                  style={styles.customDropdownItem}
+                  onPress={() => handleCdPalletSelectCustom(pallet.Cd_Pallet)}
+                >
+                  <Text style={styles.customDropdownItemText}>{pallet.Cd_Pallet}</Text>
+                </TouchableOpacity>
+              ))}
             </ScrollView>
-           </View>
-          )}
-         </View>
+          </View>
         )}
        </View>
-       <View style={styles.inputWrapper}>
+       <View style={[styles.inputWrapper, { zIndex: 1 }]}>
+        <Text style={styles.label}>Nome Pallet:</Text>
         <TextInput
          style={[styles.input, styles.disabledInput]}
          value={palletDetails?.Nm_Pallet || ''}
@@ -289,7 +281,7 @@
         />
        </View>
       </View>
-      <View style={styles.inputRow}>
+      <View style={[styles.inputRow, { zIndex: 1 }]}>
        <View style={styles.inputWrapper}>
         <TextInput
          style={styles.input}
@@ -311,7 +303,7 @@
         />
        </View>
       </View>
-      <View style={styles.inputRow}>
+      <View style={[styles.inputRow, { zIndex: 1 }]}>
         <View style={styles.inputWrapper}>
          <TextInput
           style={[styles.input, styles.disabledInput]}
@@ -357,16 +349,25 @@
      borderRadius: 8,
      backgroundColor: 'rgba(255, 255, 255, 0.85)',
      padding: 10,
+     overflow: 'visible',
     },
     inputRow: {
      flexDirection: 'row',
      justifyContent: 'space-between',
-     alignItems: 'center',
+     alignItems: 'flex-start',
      marginBottom: 10,
+     overflow: 'visible',
     },
     inputWrapper: {
      flex: 1,
      marginHorizontal: 5,
+     overflow: 'visible',
+    },
+    label: {
+     fontWeight: 'bold',
+     color: 'black',
+     fontSize: 14,
+     marginBottom: 3,
     },
     input: {
      color: 'black',
@@ -409,36 +410,41 @@
      fontWeight: 'bold',
     },
     customDropdownTrigger: {
-     color: 'black',
-     fontSize: 14,
+     flexDirection: 'row',
+     justifyContent: 'space-between',
+     alignItems: 'center',
+     backgroundColor: 'white',
      borderWidth: 1,
-     borderColor: '#ddd',
+     borderColor: '#ccc',
      borderRadius: 4,
-     paddingVertical: 8,
+     paddingVertical: 9,
      paddingHorizontal: 10,
-     backgroundColor: 'rgba(245, 245, 245, 0.9)',
-     justifyContent: 'center',
-     height: 40,
+     minHeight: 38,
     },
     customDropdownText: {
      fontSize: 14,
+     color: 'black',
+     flex: 1,
     },
     customDropdownListContainer: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(245, 245, 245, 1)', // Dropdown opaco (a alteração foi aqui)
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 4,
-        marginTop: 5,
-        maxHeight: 150,
-        zIndex: 1000,
-        top: 30,
-        width: '100%',
-       },
+     position: 'absolute',
+     top: 62,
+     left: 0,
+     right: 0,
+     backgroundColor: 'white',
+     borderWidth: 1,
+     borderColor: '#ccc',
+     zIndex: 9999,
+     elevation: 20,
+     maxHeight: 180,
+     borderRadius: 4,
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.25,
+     shadowRadius: 4,
+    },
     customDropdownList: {
-     paddingVertical: 5,
+     maxHeight: 180,
     },
     customDropdownItem: {
      paddingVertical: 10,
