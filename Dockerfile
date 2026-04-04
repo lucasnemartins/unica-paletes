@@ -9,9 +9,13 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
+# cache-bust: 2026-04-04
+RUN npm install --legacy-peer-deps
 
 COPY . .
+
+ARG EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=$EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY
 
 RUN npm run build:web
 
