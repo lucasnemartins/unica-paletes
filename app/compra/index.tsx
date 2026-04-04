@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 8, textAlign: 'center', backgroundColor: 'rgba(255, 255, 255, 0.9)', fontSize: 16 },
   disabledInput: { backgroundColor: 'rgba(245, 245, 245, 0.9)', color: '#333' },
   buttonContainer: { alignItems: 'center' },
-  buttonsRow: { flexDirection: 'row', justifyContent: 'center', width: '100%', height: 50 },
+  buttonsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
   button: { backgroundColor: '#b8934b', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 30, elevation: 5, marginHorizontal: 5, flexDirection: 'row', alignItems: 'center' },
   leftButton: { marginRight: 10 },
   buttonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
@@ -664,7 +664,12 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     backgroundColor: '#c0392b',
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 30,
+    width: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   pendingPhotosHint: {
     textAlign: 'center',
