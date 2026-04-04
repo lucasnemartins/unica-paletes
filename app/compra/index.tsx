@@ -424,7 +424,8 @@ export default function HomeScreen() {
           {/* Ações: Finalizar Compra, Tirar Foto, Enviar Fotos */}
           <View style={styles.buttonsRow}>
             <TouchableOpacity style={[styles.button, styles.leftButton]} onPress={handleSubmit} disabled={loading}>
-              <Text style={styles.buttonText}>Finalizar Compra</Text>
+              <FontAwesome name="check-circle" size={18} color="white" style={{ marginRight: 6 }} />
+              <Text style={styles.buttonText}>Finalizar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, pendingPhotos.length >= 3 && { opacity: 0.5 }]}
