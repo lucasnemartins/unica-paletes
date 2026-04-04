@@ -17,7 +17,9 @@ COPY . .
 ARG EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY
 ENV EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=$EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY
 
-RUN npm run build:web
+# Força rebuild a cada commit novo
+ARG RAILWAY_GIT_COMMIT_SHA=dev
+RUN echo "Building commit: $RAILWAY_GIT_COMMIT_SHA" && npm run build:web
 
 ###################################
 # 2) Serve it with nginx + SSL    #
