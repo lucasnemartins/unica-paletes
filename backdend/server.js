@@ -950,8 +950,8 @@ app.get('/api/health', (req, res) => {
      const [linhasCaixaSessao] = await db.execute('SELECT id_caixa, Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa');
      for (const linha of linhasCaixaSessao) {
        await db.execute(
-         'INSERT INTO tb_caixa_historico (id_original, Caixa_Atual, Data_Caixa) VALUES (?, ?, ?)',
-         [linha.id_caixa, linha.Caixa_Atual, linha.Data_Caixa]
+         'INSERT INTO tb_caixa_historico (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
+         [linha.Caixa_Atual, linha.Data_Caixa]
        );
      }
      if (totalCaixaSessao > 0 || totalComprasSessao > 0) {
@@ -1084,7 +1084,7 @@ app.get('/api/health', (req, res) => {
   app.get('/api/caixa-historico', async (req, res) => {
    const { data } = req.query;
    try {
-    let query = 'SELECT id, id_original, Caixa_Atual, Data_Caixa FROM tb_caixa_historico WHERE 1=1';
+    let query = 'SELECT id, Caixa_Atual, Data_Caixa FROM tb_caixa_historico WHERE 1=1';
     const queryParams = [];
     if (data) {
      query += ' AND DATE(Data_Caixa) = ?';
