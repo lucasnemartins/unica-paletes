@@ -99,18 +99,24 @@ const connectDatabase = async () => {
     );
   }
   try {
-    // Pool reconecta automaticamente quando a conexão cai
-    const pool = mysql.createPool({
-      ...cfg,
-      waitForConnections: true,
-      connectionLimit: 5,
-      queueLimit: 0,
-    });
-    // Testa a conexão imediatamente
-    const conn = await pool.getConnection();
-    console.log('BACKEND: Conectado ao MySQL com sucesso (pool)!');
-    conn.release();
-    return pool;
+    const db = await mysql.createConnection({ ...cfg, enableKeepAlive: true, keepAliveInitialDelay: 10000 });
+    console.log('BACKEND: Conectado ao MySQL com sucesso!');
+
+    // Ping a cada 60s para evitar timeout de conexão por inatividade
+    setInterval(async () => {
+      try {
+        await db.ping();
+      } catch (pingErr) {
+        console.error('BACKEND: MySQL ping falhou, tentando reconectar...', pingErr.message);
+        try {
+          await db.connect();
+        } catch (reconnectErr) {
+          console.error('BACKEND: Falha ao reconectar ao MySQL:', reconnectErr.message);
+        }
+      }
+    }, 60000);
+
+    return db;
   } catch (err) {
     console.error('BACKEND: Erro ao conectar ao MySQL:', err);
     throw err;
