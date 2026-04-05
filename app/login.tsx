@@ -17,7 +17,8 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [totpCode, setTotpCode] = useState('');
-  const [step, setStep] = useState<'credentials' | 'totp'>('credentials');
+  const [step, setStep] = useState<'credentials' | 'totp' | 'email_code'>('credentials');
+  const [secondFactorStrategy, setSecondFactorStrategy] = useState<'totp' | 'email_code'>('totp');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -31,8 +32,18 @@ export default function LoginScreen() {
         await setActive({ session: result.createdSessionId });
       } else if (result.status === 'needs_second_factor') {
         const factors = result.supportedSecondFactors ?? [];
-        const strategies = factors.map((f: any) => f.strategy).join(', ');
-        setError(`Debug 2FA - estratégias disponíveis: [${strategies || 'nenhuma'}]`);
+        const hasTotp = factors.some((f: any) => f.strategy === 'totp');
+        const hasEmailCode = factors.some((f: any) => f.strategy === 'email_code');
+        if (hasTotp) {
+          setSecondFactorStrategy('totp');
+          setStep('totp');
+        } else if (hasEmailCode) {
+          setSecondFactorStrategy('email_code');
+          await signIn.prepareSecondFactor({ strategy: 'email_code' });
+          setStep('email_code');
+        } else {
+          setError('Método de verificação não suportado. Contacta o administrador.');
+        }
       } else {
         setError(`Erro inesperado: ${result.status}`);
       }
@@ -50,7 +61,7 @@ export default function LoginScreen() {
     setError('');
     try {
       const result = await signIn.attemptSecondFactor({
-        strategy: 'totp',
+        strategy: secondFactorStrategy,
         code: totpCode,
       });
       if (result.status === 'complete') {
@@ -121,7 +132,9 @@ export default function LoginScreen() {
             <>
               <Text style={styles.title}>Verificação</Text>
               <Text style={styles.subtitle}>
-                Abre o teu autenticador e insere o código de 6 dígitos.
+                {secondFactorStrategy === 'email_code'
+                  ? 'Enviámos um código para o teu email. Insere o código abaixo.'
+                  : 'Abre o teu autenticador e insere o código de 6 dígitos.'}
               </Text>
 
               <Text style={styles.label}>Código</Text>
