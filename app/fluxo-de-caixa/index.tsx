@@ -20,7 +20,6 @@ interface CashFlowData {
 export default function FluxoCaixaScreen() {
   const router = useRouter();
   const { user } = useUser();
-  const nomeUsuario = user?.fullName || user?.firstName || (user?.primaryEmailAddress as any)?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || user?.id || 'Desconhecido';
   const [compraInput, setCompraInput] = useState('');
   const [cashFlowHistory, setCashFlowHistory] = useState<CashFlowData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,11 +85,18 @@ export default function FluxoCaixaScreen() {
       return;
     }
 
+    const nomeUsuario = user?.fullName
+      || user?.firstName
+      || (user as any)?.primaryEmailAddress?.emailAddress
+      || user?.emailAddresses?.[0]?.emailAddress
+      || user?.id
+      || 'Desconhecido';
+
     try {
       setLoading(true);
       setError(null);
       
-      console.log('Enviando dados:', { valor, caixaAtual: saldoAtual });
+      console.log('Enviando dados:', { valor, caixaAtual: saldoAtual, usuario: nomeUsuario });
       
       const response = await axios.post(`${API_URL}/api/registrar-compra`, {
         valor: valor,

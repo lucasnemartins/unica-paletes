@@ -22,7 +22,6 @@ interface Totals {
 
 export default function HomeScreen() {
   const { user } = useUser();
-  const nomeUsuario = user?.fullName || user?.firstName || (user?.primaryEmailAddress as any)?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || user?.id || 'Desconhecido';
   const [pallets, setPallets] = useState<Pallet[]>([]);
   const [totals, setTotals] = useState<Totals>({ totalQt: 0, totalValue: 0 });
   const [imageUri, setImageUri] = useState<any>(null);
@@ -99,6 +98,12 @@ export default function HomeScreen() {
   }, [pallets]);
 
   const handleSubmit = async () => {
+    const nomeUsuario = user?.fullName
+      || user?.firstName
+      || (user as any)?.primaryEmailAddress?.emailAddress
+      || user?.emailAddresses?.[0]?.emailAddress
+      || user?.id
+      || 'Desconhecido';
     try {
       setLoading(true);
       const palletsToSend: Pallet[] = pallets
