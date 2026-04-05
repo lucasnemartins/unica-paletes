@@ -349,16 +349,18 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Text style={styles.title}>COMPRA</Text>
-          {isLoaded && (
-            <Text style={styles.loggedInUser}>
-              👤 {[user?.firstName, user?.lastName].filter(Boolean).join(' ')
-                || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
-                || user?.emailAddresses?.[0]?.emailAddress
-                || user?.id
-                || 'Não identificado'}
-            </Text>
-          )}
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>COMPRA</Text>
+            {isLoaded && (
+              <Text style={styles.loggedInUser}>
+                👤 {user?.firstName
+                  || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+                  || user?.emailAddresses?.[0]?.emailAddress
+                  || user?.id
+                  || ''}
+              </Text>
+            )}
+          </View>
         </View>
 
         {loading && (
@@ -756,11 +758,16 @@ const styles = StyleSheet.create({
     color: '#b8934b',
     marginTop: 2,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
   loggedInUser: {
-    fontSize: 13,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 4,
+    fontSize: 14,
+    color: '#b8934b',
+    fontWeight: '500',
   },
   fotosSection: {
     marginTop: 16,
