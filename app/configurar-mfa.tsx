@@ -118,13 +118,6 @@ export default function ConfigurarMFAScreen() {
         </View>
       ) : null}
 
-      {secret ? (
-        <View style={styles.secretBox}>
-          <Text style={styles.secretLabel}>Ou insere manualmente:</Text>
-          <Text style={styles.secretCode}>{secret}</Text>
-        </View>
-      ) : null}
-
       <Text style={styles.step}>
         Após escanear, insere o código de 6 dígitos gerado pelo app:
       </Text>
@@ -153,9 +146,6 @@ export default function ConfigurarMFAScreen() {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.replace('/')}>
-        <Text style={styles.skipText}>Ignorar por agora →</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
