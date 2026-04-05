@@ -349,21 +349,19 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>COMPRA</Text>
-            {isLoaded && (
-              <View style={styles.userBadge}>
-                <FontAwesome name="user" size={14} color="#b8934b" />
-                <Text style={styles.loggedInUser}>
-                  {user?.firstName
-                    || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
-                    || user?.emailAddresses?.[0]?.emailAddress
-                    || user?.id
-                    || ''}
-                </Text>
-              </View>
-            )}
-          </View>
+          <Text style={styles.title}>COMPRA</Text>
+          {isLoaded && (
+            <View style={styles.userBadge}>
+              <FontAwesome name="user" size={14} color="#b8934b" />
+              <Text style={styles.loggedInUser}>
+                {user?.firstName
+                  || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+                  || user?.emailAddresses?.[0]?.emailAddress
+                  || user?.id
+                  || ''}
+              </Text>
+            </View>
+          )}
         </View>
 
         {loading && (
@@ -592,7 +590,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   background: { flex: 1, width: '100%', height: '100%' },
   scrollContainer: { flexGrow: 1, paddingBottom: 20 },
-  header: { backgroundColor: 'white', paddingVertical: 20, marginBottom: 15, elevation: 3 },
+  header: { backgroundColor: 'white', paddingVertical: 20, marginBottom: 15, elevation: 3, position: 'relative', alignItems: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', color: 'black', textAlign: 'center' },
   inputsContainer: { paddingHorizontal: 10, marginBottom: 15 },
   palletRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, backgroundColor: 'rgba(255, 255, 255, 0.85)', borderRadius: 10, padding: 10, marginLeft: 10, marginRight: 10 },
@@ -761,13 +759,11 @@ const styles = StyleSheet.create({
     color: '#b8934b',
     marginTop: 2,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
   userBadge: {
+    position: 'absolute',
+    right: 16,
+    top: '50%' as any,
+    transform: [{ translateY: -10 }],
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,

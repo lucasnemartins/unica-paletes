@@ -160,21 +160,19 @@ export default function FluxoCaixaScreen() {
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>CAIXA</Text>
-            {isLoaded && (
-              <View style={styles.userBadge}>
-                <FontAwesome name="user" size={14} color="#b8934b" />
-                <Text style={styles.loggedInUser}>
-                  {user?.firstName
-                    || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
-                    || user?.emailAddresses?.[0]?.emailAddress
-                    || user?.id
-                    || ''}
-                </Text>
-              </View>
-            )}
-          </View>
+          <Text style={styles.title}>CAIXA</Text>
+          {isLoaded && (
+            <View style={styles.userBadge}>
+              <FontAwesome name="user" size={14} color="#b8934b" />
+              <Text style={styles.loggedInUser}>
+                {user?.firstName
+                  || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+                  || user?.emailAddresses?.[0]?.emailAddress
+                  || user?.id
+                  || ''}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.container}>
@@ -337,7 +335,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'white', 
     paddingVertical: 20, 
     marginBottom: 15, 
-    elevation: 3 
+    elevation: 3,
+    position: 'relative',
+    alignItems: 'center',
   },
   title: { 
     fontSize: 24, 
@@ -486,13 +486,11 @@ const styles = StyleSheet.create({
     color: '#b8934b',
     marginTop: 2,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
   userBadge: {
+    position: 'absolute',
+    right: 16,
+    top: '50%' as any,
+    transform: [{ translateY: -10 }],
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
