@@ -24,9 +24,13 @@ function InitialLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="login" />
       <Stack.Screen name="compra" />
+      <Stack.Screen name="compra/index" />
       <Stack.Screen name="venda" />
+      <Stack.Screen name="venda/index" />
       <Stack.Screen name="inventario" />
+      <Stack.Screen name="inventario/index" />
       <Stack.Screen name="fluxo-de-caixa" />
+      <Stack.Screen name="fluxo-de-caixa/index" />
       <Stack.Screen name="perfil" />
     </Stack>
   );
