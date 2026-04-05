@@ -25,10 +25,11 @@ import { API_URL } from '../config';
   Valor_Venda?: string;
   data_venda?: string;
   id_venda?: string;
+  usuario?: string;
  }
 
  export default function SaleScreen() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [selectedCdPallet, setSelectedCdPallet] = useState<string | null>(null);
   const [cdPalletInput, setCdPalletInput] = useState('');
   const [qtVendaInput, setQtVendaInput] = useState('');
@@ -230,16 +231,24 @@ import { API_URL } from '../config';
    >
     <ScrollView contentContainerStyle={styles.scrollContainer}>
     <View style={styles.header}>
-  {/* Botão "Voltar ao Início" no centro superior esquerdo */}
-  <TouchableOpacity
-    style={styles.backToStartButton}
-    onPress={goBackToMenu}
-  >
-    <FontAwesome name="arrow-left" size={20} color="white" />
-          <Text style={styles.backToMenuButtonText}>Menu</Text>
-         </TouchableOpacity>
-  <Text style={styles.title}>VENDA</Text>
-</View>
+      <TouchableOpacity style={styles.backToStartButton} onPress={goBackToMenu}>
+        <FontAwesome name="arrow-left" size={20} color="white" />
+        <Text style={styles.backToMenuButtonText}>Menu</Text>
+      </TouchableOpacity>
+      <Text style={styles.title}>VENDA</Text>
+      {isLoaded && (
+        <View style={styles.userBadge}>
+          <FontAwesome name="user" size={14} color="#b8934b" />
+          <Text style={styles.loggedInUser}>
+            {[user?.firstName, user?.lastName].filter(Boolean).join(' ')
+              || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+              || user?.emailAddresses?.[0]?.emailAddress
+              || user?.id
+              || ''}
+          </Text>
+        </View>
+      )}
+    </View>
 
      <View style={styles.container}>
       <View style={[styles.inputRow, { zIndex: 100 }]}>
@@ -349,8 +358,22 @@ import { API_URL } from '../config';
  const styles = StyleSheet.create({
     background: { flex: 1, width: '100%', height: '100%' },
     scrollContainer: { flexGrow: 1, paddingBottom: 20 },
-    header: { backgroundColor: 'white', paddingVertical: 20, marginBottom: 15, elevation: 3},
+    header: { backgroundColor: 'white', paddingVertical: 20, marginBottom: 15, elevation: 3, position: 'relative', alignItems: 'center', paddingLeft: 30 },
     title: { fontSize: 24, fontWeight: 'bold', color: 'black', textAlign: 'center' },
+    userBadge: {
+      position: 'absolute',
+      right: 16,
+      top: '50%' as any,
+      transform: [{ translateY: -10 }],
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    loggedInUser: {
+      fontSize: 14,
+      color: '#b8934b',
+      fontWeight: '500',
+    },
     container: {
      marginHorizontal: 10,
      borderRadius: 8,
