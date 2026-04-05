@@ -7,6 +7,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ImageB
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { useUser } from '@clerk/clerk-react';
 import { API_URL } from '../config';
 
 interface CashFlowData {
@@ -18,6 +19,8 @@ interface CashFlowData {
 
 export default function FluxoCaixaScreen() {
   const router = useRouter();
+  const { user } = useUser();
+  const nomeUsuario = user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress || 'Desconhecido';
   const [compraInput, setCompraInput] = useState('');
   const [cashFlowHistory, setCashFlowHistory] = useState<CashFlowData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -91,7 +94,8 @@ export default function FluxoCaixaScreen() {
       
       const response = await axios.post(`${API_URL}/api/registrar-compra`, {
         valor: valor,
-        caixaAtual: saldoAtual
+        caixaAtual: saldoAtual,
+        usuario: nomeUsuario
       });
 
       console.log('Resposta:', response.data);
@@ -255,6 +259,7 @@ export default function FluxoCaixaScreen() {
                     <Text style={styles.historyItemText}>Compra: € {parseFloat(item.Compra || '0').toFixed(2)}</Text>
                     <Text style={styles.historyItemText}>Caixa Atual: € {item.Caixa_Atual !== null ? parseFloat(item.Caixa_Atual).toFixed(2) : 'N/A'}</Text>
                     <Text style={styles.historyItemText}>Saldo: € {item.Saldo !== null ? parseFloat(item.Saldo).toFixed(2) : 'N/A'}</Text>
+                    {(item as any).usuario && <Text style={styles.historyItemUsuario}>👤 {(item as any).usuario}</Text>}
                   </View>
                 ))
               )}
@@ -455,6 +460,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+  },
+  historyItemUsuario: {
+    fontSize: 12,
+    color: '#b8934b',
+    marginTop: 2,
   },
   historyItemText: {
     fontSize: 14,

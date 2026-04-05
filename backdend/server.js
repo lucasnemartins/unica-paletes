@@ -384,7 +384,9 @@ app.get('/api/health', (req, res) => {
   // Rota para registrar a compra e atualizar o estoque
   app.post('/api/compras', async (req, res) => {
    console.log('BACKEND: POST /api/compras - Rota acessada.');
-   const pallets = req.body;
+   const { pallets: palletsRaw, usuario } = Array.isArray(req.body) ? { pallets: req.body, usuario: null } : req.body;
+   const pallets = palletsRaw ?? req.body;
+   const nomeUsuario = usuario || 'Desconhecido';
    console.log('BACKEND: POST /api/compras - Dados recebidos:', JSON.stringify(pallets, null, 2));
 
    if (!Array.isArray(pallets) || pallets.length === 0) {
@@ -420,9 +422,9 @@ app.get('/api/health', (req, res) => {
     console.log('BACKEND: Totais calculados - Quantidade:', quantidadeTotal, 'Valor:', valorTotalCompraConsolidado);
 
     // Inserir dados na tb_compra_consolidado
-    const sqlCompraConsolidado = 'INSERT INTO tb_compra_consolidado (data_compra, Qt_Total, valor_total) VALUES (?, ?, ?)';
+    const sqlCompraConsolidado = 'INSERT INTO tb_compra_consolidado (data_compra, Qt_Total, valor_total, usuario) VALUES (?, ?, ?, ?)';
     console.log('BACKEND: SQL para tb_compra_consolidado:', sqlCompraConsolidado, [dataCompra, quantidadeTotal, valorTotalCompraConsolidado]);
-    await db.execute(sqlCompraConsolidado, [dataCompra, quantidadeTotal, valorTotalCompraConsolidado]);
+    await db.execute(sqlCompraConsolidado, [dataCompra, quantidadeTotal, valorTotalCompraConsolidado, nomeUsuario]);
     
     const [resultInsertConsolidado] = await db.execute('SELECT LAST_INSERT_ID() AS id_compra');
     compraId = resultInsertConsolidado[0].id_compra;
@@ -436,9 +438,10 @@ app.get('/api/health', (req, res) => {
      dataCompra,
      Math.floor(parseFloat(pallet.Qt)),
      pallet.Valor,
+     nomeUsuario,
     ]);
-    const placeholders = pallets.map(() => '(?, ?, ?, ?, ?, ?)').join(',');
-    const sqlCompra = `INSERT INTO tb_compra (id_compra, Cd_Pallet, Nm_Pallet, Data_Compra, Qt_Pallet, Vl) VALUES ${placeholders}`;
+    const placeholders = pallets.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(',');
+    const sqlCompra = `INSERT INTO tb_compra (id_compra, Cd_Pallet, Nm_Pallet, Data_Compra, Qt_Pallet, Vl, usuario) VALUES ${placeholders}`;
     console.log('BACKEND: SQL para tb_compra:', sqlCompra, valuesCompra);
     await db.execute(sqlCompra, valuesCompra);
 
@@ -639,7 +642,7 @@ app.get('/api/health', (req, res) => {
   app.get('/api/compras/historico', async (req, res) => {
     try {
       const [rows] = await db.execute(
-        'SELECT id, data_compra, Qt_Total, valor_total FROM tb_compra_consolidado ORDER BY data_compra DESC LIMIT 50'
+        'SELECT id, data_compra, Qt_Total, valor_total, usuario FROM tb_compra_consolidado ORDER BY data_compra DESC LIMIT 50'
       );
       res.json(rows);
     } catch (err) {
@@ -926,7 +929,8 @@ app.get('/api/health', (req, res) => {
   // Rota para adicionar um valor ao caixa (adição de dinheiro)
   app.post('/api/registrar-compra', async (req, res) => {
    console.log('BACKEND: /api/registrar-compra - Iniciando registro de caixa...');
-   const { valor } = req.body;
+   const { valor, usuario } = req.body;
+   const nomeUsuario = usuario || 'Desconhecido';
    if (valor === undefined || isNaN(parseFloat(valor))) {
      return res.status(400).json({ error: 'Valor inválido para registro de caixa.' });
    }
@@ -938,8 +942,8 @@ app.get('/api/health', (req, res) => {
    try {
      // Inserir na tabela de sessão atual
      await db.execute(
-       'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa) VALUES (?, ?)',
-       [valorAdicionado, dataCaixa]
+       'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa, usuario) VALUES (?, ?, ?)',
+       [valorAdicionado, dataCaixa, nomeUsuario]
      );
      console.log('BACKEND: /api/registrar-compra - Inserido em tb_fluxo_caixa');
      res.json({ message: 'Valor adicionado ao caixa com sucesso!' });
@@ -966,11 +970,11 @@ app.get('/api/health', (req, res) => {
      const totalComprasSessao = parseFloat(totalSessaoCompras);
      const diferencaSessao = totalCaixaSessao - totalComprasSessao;
      // Detalhe por adição (igual tb_compra → tb_compra_historico)
-     const [linhasCaixaSessao] = await db.execute('SELECT id_caixa, Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa');
+     const [linhasCaixaSessao] = await db.execute('SELECT id_caixa, Caixa_Atual, Data_Caixa, usuario FROM tb_fluxo_caixa');
      for (const linha of linhasCaixaSessao) {
        await db.execute(
-         'INSERT INTO tb_caixa_historico (id, Caixa_Atual, Data_Caixa) VALUES (?, ?, ?)',
-         [linha.id_caixa, linha.Caixa_Atual, linha.Data_Caixa]
+         'INSERT INTO tb_caixa_historico (id, Caixa_Atual, Data_Caixa, usuario) VALUES (?, ?, ?, ?)',
+         [linha.id_caixa, linha.Caixa_Atual, linha.Data_Caixa, linha.usuario]
        );
      }
      if (totalCaixaSessao > 0 || totalComprasSessao > 0) {
@@ -982,21 +986,21 @@ app.get('/api/health', (req, res) => {
      await db.execute('DELETE FROM tb_fluxo_caixa');
 
      // 2. Mover tb_compra (sessão) → tb_compra_historico
-     const [registrosCompra] = await db.execute('SELECT id_compra, Cd_Pallet, Nm_Pallet, Data_Compra, Qt_Pallet, Vl FROM tb_compra');
+     const [registrosCompra] = await db.execute('SELECT id_compra, Cd_Pallet, Nm_Pallet, Data_Compra, Qt_Pallet, Vl, usuario FROM tb_compra');
      for (const reg of registrosCompra) {
        await db.execute(
-         'INSERT INTO tb_compra_historico (id_compra, Cd_Pallet, Nm_Pallet, Data_Compra, Qt_Pallet, Vl) VALUES (?, ?, ?, ?, ?, ?)',
-         [reg.id_compra, reg.Cd_Pallet, reg.Nm_Pallet, reg.Data_Compra, reg.Qt_Pallet, reg.Vl]
+         'INSERT INTO tb_compra_historico (id_compra, Cd_Pallet, Nm_Pallet, Data_Compra, Qt_Pallet, Vl, usuario) VALUES (?, ?, ?, ?, ?, ?, ?)',
+         [reg.id_compra, reg.Cd_Pallet, reg.Nm_Pallet, reg.Data_Compra, reg.Qt_Pallet, reg.Vl, reg.usuario]
        );
      }
      await db.execute('DELETE FROM tb_compra');
 
      // 3. Mover tb_compra_consolidado (sessão) → tb_compra_consolidado_historico
-     const [registrosConsolidado] = await db.execute('SELECT id, data_compra, Qt_Total, valor_total FROM tb_compra_consolidado');
+     const [registrosConsolidado] = await db.execute('SELECT id, data_compra, Qt_Total, valor_total, usuario FROM tb_compra_consolidado');
      for (const reg of registrosConsolidado) {
        await db.execute(
-         'INSERT INTO tb_compra_consolidado_historico (id, data_compra, Qt_Total, valor_total) VALUES (?, ?, ?, ?)',
-         [reg.id, reg.data_compra, reg.Qt_Total, reg.valor_total]
+         'INSERT INTO tb_compra_consolidado_historico (id, data_compra, Qt_Total, valor_total, usuario) VALUES (?, ?, ?, ?, ?)',
+         [reg.id, reg.data_compra, reg.Qt_Total, reg.valor_total, reg.usuario]
        );
      }
      await db.execute('DELETE FROM tb_compra_consolidado');
@@ -1029,7 +1033,7 @@ app.get('/api/health', (req, res) => {
   app.get('/api/fluxo-caixa', async (req, res) => {
    const { data } = req.query;
    try {
-    let query = 'SELECT id_caixa, Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa WHERE Caixa_Atual > 0';
+    let query = 'SELECT id_caixa, Caixa_Atual, Data_Caixa, usuario FROM tb_fluxo_caixa WHERE Caixa_Atual > 0';
     const queryParams = [];
 
     if (data) {
@@ -1050,7 +1054,7 @@ app.get('/api/health', (req, res) => {
   app.get('/api/fluxo-caixa/historico', async (req, res) => {
    const { data } = req.query;
    try {
-    let query = 'SELECT id_caixa, Caixa_Atual, Data_Caixa FROM tb_fluxo_caixa_historico WHERE Caixa_Atual > 0';
+    let query = 'SELECT id_caixa, Caixa_Atual, Data_Caixa, usuario FROM tb_fluxo_caixa_historico WHERE Caixa_Atual > 0';
     const queryParams = [];
 
     if (data) {
@@ -1103,7 +1107,7 @@ app.get('/api/health', (req, res) => {
   app.get('/api/caixa-historico', async (req, res) => {
    const { data } = req.query;
    try {
-    let query = 'SELECT id, Caixa_Atual, Data_Caixa FROM tb_caixa_historico WHERE 1=1';
+    let query = 'SELECT id, Caixa_Atual, Data_Caixa, usuario FROM tb_caixa_historico WHERE 1=1';
     const queryParams = [];
     if (data) {
      query += ' AND DATE(Data_Caixa) = ?';

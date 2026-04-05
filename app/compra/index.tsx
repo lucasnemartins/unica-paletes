@@ -4,6 +4,7 @@ import axios, { AxiosResponse } from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useUser } from '@clerk/clerk-react';
 import { API_URL } from '../config';
 
 interface Pallet {
@@ -20,6 +21,8 @@ interface Totals {
 }
 
 export default function HomeScreen() {
+  const { user } = useUser();
+  const nomeUsuario = user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress || 'Desconhecido';
   const [pallets, setPallets] = useState<Pallet[]>([]);
   const [totals, setTotals] = useState<Totals>({ totalQt: 0, totalValue: 0 });
   const [imageUri, setImageUri] = useState<any>(null);
@@ -112,7 +115,7 @@ export default function HomeScreen() {
       }
 
       // 1. Salvar compra
-      const response: AxiosResponse<{ message: string; id_compra: number }> = await axios.post(`${API_URL}/api/compras`, palletsToSend, {
+      const response: AxiosResponse<{ message: string; id_compra: number }> = await axios.post(`${API_URL}/api/compras`, { pallets: palletsToSend, usuario: nomeUsuario }, {
         headers: { 'Content-Type': 'application/json' },
       });
       const idCompra = response.data.id_compra;
@@ -514,6 +517,9 @@ export default function HomeScreen() {
                     <Text style={styles.historicoInfo}>
                       {compra.Qt_Total} paletes · € {Number(compra.valor_total).toFixed(2)}
                     </Text>
+                    {(compra as any).usuario && (
+                      <Text style={styles.historicoUsuario}>👤 {(compra as any).usuario}</Text>
+                    )}
                   </View>
                   <FontAwesome name="camera" size={16} color="#b8934b" />
                 </TouchableOpacity>
@@ -729,6 +735,11 @@ const styles = StyleSheet.create({
   historicoInfo: {
     fontSize: 13,
     color: '#777',
+    marginTop: 2,
+  },
+  historicoUsuario: {
+    fontSize: 12,
+    color: '#b8934b',
     marginTop: 2,
   },
   fotosSection: {
