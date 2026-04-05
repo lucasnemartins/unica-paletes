@@ -11,10 +11,10 @@ import { useUser } from '@clerk/clerk-react';
 import { API_URL } from '../config';
 
 interface CashFlowData {
+  id_caixa: number;
   Data_Caixa: string;
-  Compra: string;
   Caixa_Atual: string | null;
-  Saldo: string | null;
+  usuario?: string;
 }
 
 export default function FluxoCaixaScreen() {
@@ -279,11 +279,13 @@ export default function FluxoCaixaScreen() {
               ) : (
                 cashFlowHistory.map((item, index) => (
                   <View key={index} style={styles.historyItem}>
-                    <Text style={styles.historyItemText}>Data: {new Date(item.Data_Caixa).toLocaleDateString()}</Text>
-                    <Text style={styles.historyItemText}>Compra: € {parseFloat(item.Compra || '0').toFixed(2)}</Text>
-                    <Text style={styles.historyItemText}>Caixa Atual: € {item.Caixa_Atual !== null ? parseFloat(item.Caixa_Atual).toFixed(2) : 'N/A'}</Text>
-                    <Text style={styles.historyItemText}>Saldo: € {item.Saldo !== null ? parseFloat(item.Saldo).toFixed(2) : 'N/A'}</Text>
-                    {(item as any).usuario && <Text style={styles.historyItemUsuario}>👤 {(item as any).usuario}</Text>}
+                    <Text style={styles.historyItemText}>
+                      {new Date(item.Data_Caixa).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      {' '}
+                      {new Date(item.Data_Caixa).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                    <Text style={styles.historyItemText}>€ {item.Caixa_Atual !== null && item.Caixa_Atual !== undefined ? parseFloat(item.Caixa_Atual).toFixed(2) : '0.00'}</Text>
+                    {item.usuario && <Text style={styles.historyItemUsuario}>👤 {item.usuario}</Text>}
                   </View>
                 ))
               )}
