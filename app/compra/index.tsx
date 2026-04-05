@@ -590,7 +590,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   background: { flex: 1, width: '100%', height: '100%' },
   scrollContainer: { flexGrow: 1, paddingBottom: 20 },
-  header: { backgroundColor: 'white', paddingVertical: 20, marginBottom: 15, elevation: 3, position: 'relative', alignItems: 'center' },
+  header: { backgroundColor: 'white', paddingVertical: 20, marginBottom: 15, elevation: 3, position: 'relative', alignItems: 'center', paddingLeft: 80 },
   title: { fontSize: 24, fontWeight: 'bold', color: 'black', textAlign: 'center' },
   inputsContainer: { paddingHorizontal: 10, marginBottom: 15 },
   palletRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, backgroundColor: 'rgba(255, 255, 255, 0.85)', borderRadius: 10, padding: 10, marginLeft: 10, marginRight: 10 },
