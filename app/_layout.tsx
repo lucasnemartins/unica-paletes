@@ -28,6 +28,7 @@ function InitialLayout() {
       <Stack.Screen name="inventario" />
       <Stack.Screen name="fluxo-de-caixa" />
       <Stack.Screen name="perfil" />
+      <Stack.Screen name="configurar-mfa" />
     </Stack>
   );
 }

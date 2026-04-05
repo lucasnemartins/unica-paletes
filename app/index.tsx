@@ -31,8 +31,8 @@ export default function HomeScreen() {
       style={styles.background}
       resizeMode="cover"
     >
-      <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/perfil')}>
-        <Text style={styles.logoutText}>⚙️</Text>
+      <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/configurar-mfa')}>
+        <Text style={styles.logoutText}>🔐</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.logoutButton} onPress={() => signOut()}>
         <Text style={styles.logoutText}>Sair</Text>
