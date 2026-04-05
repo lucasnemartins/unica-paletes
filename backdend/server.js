@@ -1064,7 +1064,8 @@ app.get('/api/health', (req, res) => {
   app.get('/api/fluxo-caixa/historico', async (req, res) => {
    const { data } = req.query;
    try {
-    let query = 'SELECT id_caixa, Caixa_Atual, Data_Caixa, usuario FROM tb_fluxo_caixa_historico WHERE Caixa_Atual > 0';
+    let query =
+      'SELECT id_caixa, Caixa_Atual, IFNULL(Total_Compras, 0) AS Total_Compras, IFNULL(Diferenca, 0) AS Diferenca, Data_Caixa, usuario FROM tb_fluxo_caixa_historico WHERE 1=1';
     const queryParams = [];
 
     if (data) {

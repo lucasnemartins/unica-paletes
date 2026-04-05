@@ -14,7 +14,16 @@ interface CashFlowData {
   id_caixa: number;
   Data_Caixa: string;
   Caixa_Atual: string | null;
+  Total_Compras?: string | number | null;
+  Diferenca?: string | number | null;
   usuario?: string;
+}
+
+function formatEuro(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '0,00';
+  const n = typeof value === 'number' ? value : parseFloat(String(value));
+  if (Number.isNaN(n)) return '0,00';
+  return n.toFixed(2).replace('.', ',');
 }
 
 export default function FluxoCaixaScreen() {
@@ -278,13 +287,15 @@ export default function FluxoCaixaScreen() {
                 <ActivityIndicator size="large" color="#b8934b" />
               ) : (
                 cashFlowHistory.map((item, index) => (
-                  <View key={index} style={styles.historyItem}>
+                  <View key={item.id_caixa ?? index} style={styles.historyItem}>
                     <Text style={styles.historyItemText}>
                       {new Date(item.Data_Caixa).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                       {' '}
                       {new Date(item.Data_Caixa).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </Text>
-                    <Text style={styles.historyItemText}>€ {item.Caixa_Atual !== null && item.Caixa_Atual !== undefined ? parseFloat(item.Caixa_Atual).toFixed(2) : '0.00'}</Text>
+                    <Text style={styles.historyItemText}>Total adicionado: € {formatEuro(item.Caixa_Atual)}</Text>
+                    <Text style={styles.historyItemText}>Total de compras: € {formatEuro(item.Total_Compras)}</Text>
+                    <Text style={styles.historyItemText}>Saldo: € {formatEuro(item.Diferenca)}</Text>
                     {item.usuario && <Text style={styles.historyItemUsuario}>👤 {item.usuario}</Text>}
                   </View>
                 ))
