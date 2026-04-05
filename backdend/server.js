@@ -492,6 +492,26 @@ app.get('/api/health', (req, res) => {
     console.log('BACKEND: Commit da transação...');
     await db.commit();
 
+    // Atualizar tb_fluxo_caixa: atualizar o registo mais recente com o novo total de compras e saldo
+    try {
+      const [[{ totalComprasAtualizadas }]] = await db.execute(
+        'SELECT IFNULL(SUM(valor_total),0) AS totalComprasAtualizadas FROM tb_compra_consolidado'
+      );
+      const [[{ totalCaixaSess }]] = await db.execute(
+        'SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixaSess FROM tb_fluxo_caixa'
+      );
+      const totalComprasVal = parseFloat(totalComprasAtualizadas);
+      const totalCaixaVal = parseFloat(totalCaixaSess);
+      const saldoAtualizado = totalCaixaVal - totalComprasVal;
+      await db.execute(
+        'UPDATE tb_fluxo_caixa SET Compra = ?, Diferenca = ? WHERE id_caixa = (SELECT max_id FROM (SELECT MAX(id_caixa) AS max_id FROM tb_fluxo_caixa) AS sub)',
+        [totalComprasVal, saldoAtualizado]
+      );
+      console.log('BACKEND: tb_fluxo_caixa atualizado com novo total de compras e saldo.');
+    } catch (fcErr) {
+      console.error('Erro ao atualizar tb_fluxo_caixa após compra:', fcErr);
+    }
+
     // Atualizar tb_fluxo_caixa_consolidado após registrar a compra
     try {
       // Buscar totais acumulados (histórico + sessão atual)
