@@ -492,24 +492,24 @@ app.get('/api/health', (req, res) => {
     console.log('BACKEND: Commit da transação...');
     await db.commit();
 
-    // Atualizar tb_fluxo_caixa: atualizar o registo mais recente com o novo total de compras e saldo
+    // Inserir nova linha em tb_fluxo_caixa para registar o evento de compra
     try {
-      const [[{ totalComprasAtualizadas }]] = await db.execute(
-        'SELECT IFNULL(SUM(valor_total),0) AS totalComprasAtualizadas FROM tb_compra_consolidado'
+      const [[{ totalComprasSnap }]] = await db.execute(
+        'SELECT IFNULL(SUM(valor_total),0) AS totalComprasSnap FROM tb_compra_consolidado'
       );
-      const [[{ totalCaixaSess }]] = await db.execute(
-        'SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixaSess FROM tb_fluxo_caixa'
+      const [[{ totalCaixaSnap }]] = await db.execute(
+        'SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixaSnap FROM tb_fluxo_caixa'
       );
-      const totalComprasVal = parseFloat(totalComprasAtualizadas);
-      const totalCaixaVal = parseFloat(totalCaixaSess);
-      const saldoAtualizado = totalCaixaVal - totalComprasVal;
+      const totalComprasVal = parseFloat(totalComprasSnap);
+      const totalCaixaVal = parseFloat(totalCaixaSnap);
+      const saldoSnap = totalCaixaVal - totalComprasVal;
       await db.execute(
-        'UPDATE tb_fluxo_caixa SET Compra = ?, Diferenca = ? WHERE id_caixa = (SELECT max_id FROM (SELECT MAX(id_caixa) AS max_id FROM tb_fluxo_caixa) AS sub)',
-        [totalComprasVal, saldoAtualizado]
+        'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa, usuario, Compra, Diferenca) VALUES (?, ?, ?, ?, ?)',
+        [0, dataCompra, nomeUsuario, totalComprasVal, saldoSnap]
       );
-      console.log('BACKEND: tb_fluxo_caixa atualizado com novo total de compras e saldo.');
+      console.log('BACKEND: Nova linha inserida em tb_fluxo_caixa após compra.');
     } catch (fcErr) {
-      console.error('Erro ao atualizar tb_fluxo_caixa após compra:', fcErr);
+      console.error('Erro ao inserir linha em tb_fluxo_caixa após compra:', fcErr);
     }
 
     // Atualizar tb_fluxo_caixa_consolidado após registrar a compra
