@@ -122,7 +122,13 @@ export default function FluxoCaixaScreen() {
   const confirmarFechamento = async () => {
     try {
       setLoading(true);
-      await axios.post(`${API_URL}/api/fechar-caixa`);
+      const nomeParts = [user?.firstName, user?.lastName].filter(Boolean);
+      const primaryEmail = user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+        || user?.emailAddresses?.[0]?.emailAddress;
+      const nomeUsuarioFechamento = nomeParts.length > 0
+        ? nomeParts.join(' ')
+        : (primaryEmail || user?.id || 'Desconhecido');
+      await axios.post(`${API_URL}/api/fechar-caixa`, { usuario: nomeUsuarioFechamento });
       setShowFechamentoModal(false);
       setTotalCaixa(0);
       setTotalCompras(0);

@@ -958,6 +958,7 @@ app.get('/api/health', (req, res) => {
   // Rota para fechar o caixa: move dados de tb_fluxo_caixa (sessão) para tb_fluxo_caixa_historico
   app.post('/api/fechar-caixa', async (req, res) => {
    console.log('BACKEND: /api/fechar-caixa - Iniciando fechamento...');
+   const nomeUsuarioFechamento = req.body?.usuario || 'Desconhecido';
    try {
      await db.beginTransaction();
 
@@ -981,8 +982,8 @@ app.get('/api/health', (req, res) => {
      }
      if (totalCaixaSessao > 0 || totalComprasSessao > 0) {
        await db.execute(
-         'INSERT INTO tb_fluxo_caixa_historico (Caixa_Atual, Total_Compras, Diferenca, Data_Caixa) VALUES (?, ?, ?, ?)',
-         [totalCaixaSessao, totalComprasSessao, diferencaSessao, dataFechamento]
+         'INSERT INTO tb_fluxo_caixa_historico (Caixa_Atual, Total_Compras, Diferenca, Data_Caixa, usuario) VALUES (?, ?, ?, ?, ?)',
+         [totalCaixaSessao, totalComprasSessao, diferencaSessao, dataFechamento, nomeUsuarioFechamento]
        );
      }
      await db.execute('DELETE FROM tb_fluxo_caixa');
