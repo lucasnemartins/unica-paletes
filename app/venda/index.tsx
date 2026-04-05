@@ -352,6 +352,7 @@ import { API_URL } from '../config';
       {loading && availablePallets.length > 0 && <Text>Carregando detalhes do pallet...</Text>}
 
       <TouchableOpacity style={styles.registerButton} onPress={handleRegistrarVendaDireta}>
+       <FontAwesome name="check-circle" size={18} color="white" />
        <Text style={styles.registerButtonText}>REGISTRAR VENDA</Text>
       </TouchableOpacity>
 
@@ -429,6 +430,9 @@ import { API_URL } from '../config';
      elevation: 5,
      marginTop: 20,
      alignItems: 'center',
+     flexDirection: 'row',
+     justifyContent: 'center',
+     gap: 8,
     },
     registerButtonText: {
      color: 'white',
