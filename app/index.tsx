@@ -31,9 +31,6 @@ export default function HomeScreen() {
       style={styles.background}
       resizeMode="cover"
     >
-      <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/configurar-mfa')}>
-        <Text style={styles.logoutText}>🔐</Text>
-      </TouchableOpacity>
       <TouchableOpacity style={styles.logoutButton} onPress={() => signOut()}>
         <Text style={styles.logoutText}>Sair</Text>
       </TouchableOpacity>
@@ -107,16 +104,6 @@ export default function HomeScreen() {
     fontWeight: 'bold',
     fontSize: 16,
     textAlign: 'center',
-  },
-  profileButton: {
-    position: 'absolute',
-    top: 15,
-    right: 75,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    zIndex: 10,
   },
   logoutButton: {
     position: 'absolute',
