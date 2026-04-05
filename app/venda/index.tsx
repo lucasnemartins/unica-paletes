@@ -198,19 +198,20 @@ import { API_URL } from '../config';
       }
      );
      console.log('FRONTEND: POST /api/vendas response:', response.data);
-     setIdVenda(response.data.id_venda || null);
-     Alert.alert('Sucesso', response.data.message + (response.data.id_venda ? ` ID da Venda: ${response.data.id_venda}` : ''), [
-      { text: 'OK', onPress: () => {
-       setSelectedCdPallet(null);
-       setCdPalletInput('');
-       setQtVendaInput('');
-       setVlUniVendaInput('');
-       setPalletDetails(null);
-       setNomePalletManual('');
-       setValorVendaCalculado('');
-       setItemVenda(null);
-      }},
-     ]);
+     const idVendaRegistada = response.data.id_venda || null;
+
+     setSelectedCdPallet(null);
+     setCdPalletInput('');
+     setQtVendaInput('');
+     setVlUniVendaInput('');
+     setPalletDetails(null);
+     setNomePalletManual('');
+     setValorVendaCalculado('');
+     setItemVenda(null);
+     setIdVenda(null);
+     setError('');
+
+     Alert.alert('Sucesso', response.data.message + (idVendaRegistada ? ` ID: ${idVendaRegistada}` : ''));
     } catch (err: any) {
      console.error('FRONTEND: Erro ao registrar venda:', err);
      setError('Falha ao registrar a venda.');
