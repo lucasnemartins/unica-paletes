@@ -447,7 +447,7 @@ app.get('/api/health', (req, res) => {
 
       if (existente.length > 0) {
         // Atualizar estoque existente
-        const novaQt = existente[0].Qt_Estoque + parseInt(pallet.Qt);
+        const novaQt = Math.round(existente[0].Qt_Estoque + parseInt(pallet.Qt));
         const novoValorEstoque = existente[0].Valor_Estoque + parseFloat(pallet.Valor);
         console.log(`BACKEND: Atualizando estoque do pallet ${pallet.Cd_Pallet} - Nova Qt: ${novaQt}, Novo Valor: ${novoValorEstoque}`);
         
@@ -466,7 +466,7 @@ app.get('/api/health', (req, res) => {
         console.log(`BACKEND: Inserindo novo registro para o pallet ${pallet.Cd_Pallet}`);
         const [resultInsert] = await db.execute(
           'INSERT INTO tb_Estoque (Cd_Pallet, Nm_Pallet, Qt_Estoque, Vl_Unitario, Valor_Estoque) VALUES (?, ?, ?, ?, ?)',
-          [pallet.Cd_Pallet, pallet.Nm_Pallet, parseInt(pallet.Qt), parseFloat(pallet.UnitValue), parseFloat(pallet.Valor)]
+          [pallet.Cd_Pallet, pallet.Nm_Pallet, Math.round(parseInt(pallet.Qt)), parseFloat(pallet.UnitValue), parseFloat(pallet.Valor)]
         );
         
         if (resultInsert.affectedRows === 0) {
@@ -879,10 +879,10 @@ app.get('/api/health', (req, res) => {
        Cd_Pallet = ? AND Qt_Estoque >= ? AND Valor_Estoque >= ?
      `;
      const [resultUpdateEstoque] = await db.execute(updateEstoqueSql, [
-      parseInt(Qt_Venda),
+      qtVendaInt,
       novoValorEstoque,
       Cd_Pallet,
-      parseInt(Qt_Venda),
+      qtVendaInt,
       valorRemoverEstoque,
      ]);
 
