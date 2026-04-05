@@ -426,7 +426,7 @@ app.get('/api/health', (req, res) => {
      pallet.Cd_Pallet,
      pallet.Nm_Pallet,
      dataCompra,
-     pallet.Qt,
+     Math.round(parseFloat(pallet.Qt)),
      pallet.Valor,
     ]);
     const placeholders = pallets.map(() => '(?, ?, ?, ?, ?, ?)').join(',');
@@ -854,8 +854,9 @@ app.get('/api/health', (req, res) => {
       throw new Error('Dados de venda incompletos para o pallet: ' + Cd_Pallet);
      }
 
+     const qtVendaInt = Math.round(parseFloat(Qt_Venda));
      const insertVendaSql = 'INSERT INTO tb_venda (id_venda, Cd_Pallet, Nm_Pallet, Data_Venda, Qt_Venda, Vl_Unitario, Valor_Venda) VALUES (?, ?, ?, ?, ?, ?, ?)';
-     await db.execute(insertVendaSql, [vendaIdNumerico, Cd_Pallet, Nm_Pallet, dataVenda, parseInt(Qt_Venda), parseFloat(Vl_Uni_venda), parseFloat(Valor_Venda)]);
+     await db.execute(insertVendaSql, [vendaIdNumerico, Cd_Pallet, Nm_Pallet, dataVenda, qtVendaInt, parseFloat(Vl_Uni_venda), parseFloat(Valor_Venda)]);
      console.log('BACKEND: POST /api/vendas - Item de venda inserido para o pallet:', Cd_Pallet);
 
      // Buscar o Vl_Unitario e Valor_Estoque atual do produto no estoque
