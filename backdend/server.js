@@ -948,10 +948,21 @@ app.get('/api/health', (req, res) => {
    const dataCaixa = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
    try {
-     // Inserir na tabela de sessão atual
+     // Buscar total de compras da sessão atual
+     const [[{ totalComprasSessao }]] = await db.execute(
+       'SELECT IFNULL(SUM(valor_total),0) AS totalComprasSessao FROM tb_compra_consolidado'
+     );
+     const totalCompras = parseFloat(totalComprasSessao);
+     // Buscar total já adicionado ao caixa (sessão atual) antes deste novo valor
+     const [[{ totalCaixaAtual }]] = await db.execute(
+       'SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixaAtual FROM tb_fluxo_caixa'
+     );
+     const novoCaixaTotal = parseFloat(totalCaixaAtual) + valorAdicionado;
+     const diferenca = novoCaixaTotal - totalCompras;
+
      await db.execute(
-       'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa, usuario) VALUES (?, ?, ?)',
-       [valorAdicionado, dataCaixa, nomeUsuario]
+       'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa, usuario, Compra, Diferenca) VALUES (?, ?, ?, ?, ?)',
+       [valorAdicionado, dataCaixa, nomeUsuario, totalCompras, diferenca]
      );
      console.log('BACKEND: /api/registrar-compra - Inserido em tb_fluxo_caixa');
      res.json({ message: 'Valor adicionado ao caixa com sucesso!' });
@@ -979,11 +990,11 @@ app.get('/api/health', (req, res) => {
      const totalComprasSessao = parseFloat(totalSessaoCompras);
      const diferencaSessao = totalCaixaSessao - totalComprasSessao;
      // Detalhe por adição (igual tb_compra → tb_compra_historico)
-     const [linhasCaixaSessao] = await db.execute('SELECT id_caixa, Caixa_Atual, Data_Caixa, usuario FROM tb_fluxo_caixa');
+     const [linhasCaixaSessao] = await db.execute('SELECT id_caixa, Caixa_Atual, Data_Caixa, usuario, IFNULL(Compra,0) AS Compra, IFNULL(Diferenca,0) AS Diferenca FROM tb_fluxo_caixa');
      for (const linha of linhasCaixaSessao) {
        await db.execute(
-         'INSERT INTO tb_caixa_historico (id, Caixa_Atual, Data_Caixa, usuario) VALUES (?, ?, ?, ?)',
-         [linha.id_caixa, linha.Caixa_Atual, linha.Data_Caixa, linha.usuario]
+         'INSERT INTO tb_caixa_historico (id, Caixa_Atual, Data_Caixa, usuario, Compra, Diferenca) VALUES (?, ?, ?, ?, ?, ?)',
+         [linha.id_caixa, linha.Caixa_Atual, linha.Data_Caixa, linha.usuario, linha.Compra, linha.Diferenca]
        );
      }
      if (totalCaixaSessao > 0 || totalComprasSessao > 0) {
