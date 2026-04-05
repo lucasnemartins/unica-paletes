@@ -413,7 +413,7 @@ import { API_URL } from '../config';
      borderRadius: 4,
      paddingVertical: 8,
      paddingHorizontal: 10,
-     backgroundColor: 'rgba(245, 245, 245, 0.9)',
+     backgroundColor: 'white',
      justifyContent: 'center',
      height: 40,
     },
