@@ -505,8 +505,8 @@ app.get('/api/health', (req, res) => {
       const saldoAtual = totalCaixa - totalCompras;
       const diferenca = saldoAtual - totalCompras;
       await db.execute(
-        'INSERT INTO tb_fluxo_caixa_consolidado (Total_Compras, Saldo_Atual, Diferenca, Data_Caixa) VALUES (?, ?, ?, ?)',
-        [totalCompras, saldoAtual, diferenca, dataCompra]
+        'INSERT INTO tb_fluxo_caixa_consolidado (Total_Compras, Saldo_Atual, Diferenca, Data_Caixa, usuario) VALUES (?, ?, ?, ?, ?)',
+        [totalCompras, saldoAtual, diferenca, dataCompra, nomeUsuario]
       );
       console.log('BACKEND: tb_fluxo_caixa_consolidado atualizado após compra.');
     } catch (consErr) {
@@ -516,8 +516,8 @@ app.get('/api/health', (req, res) => {
     // Atualizar tb_fluxo_compra_consolidado após registrar a compra
     try {
       await db.execute(
-        'INSERT INTO tb_fluxo_compra_consolidado (Total_Compras, Data_Compra) VALUES (?, ?)',
-        [valorTotalCompraConsolidado, dataCompra]
+        'INSERT INTO tb_fluxo_compra_consolidado (Total_Compras, Data_Compra, usuario) VALUES (?, ?, ?)',
+        [valorTotalCompraConsolidado, dataCompra, nomeUsuario]
       );
       console.log('BACKEND: tb_fluxo_compra_consolidado atualizado após compra.');
     } catch (err) {
@@ -840,7 +840,8 @@ app.get('/api/health', (req, res) => {
 
   // Rota para registrar a venda e atualizar o estoque (MODIFICADA PARA ATUALIZAR O VALOR)
   app.post('/api/vendas', async (req, res) => {
-   const itensVenda = req.body;
+   const itensVenda = Array.isArray(req.body) ? req.body : (req.body.itens || req.body);
+   const nomeUsuarioVenda = Array.isArray(req.body) ? (req.body[0]?.usuario || 'Desconhecido') : (req.body.usuario || req.body[0]?.usuario || 'Desconhecido');
    console.log('BACKEND: POST /api/vendas - Dados de venda recebidos:', itensVenda);
 
    if (!Array.isArray(itensVenda) || itensVenda.length === 0) {
@@ -867,8 +868,9 @@ app.get('/api/health', (req, res) => {
      }
 
      const qtVendaInt = Math.floor(parseFloat(Qt_Venda));
-     const insertVendaSql = 'INSERT INTO tb_venda (id_venda, Cd_Pallet, Nm_Pallet, Data_Venda, Qt_Venda, Vl_Unitario, Valor_Venda) VALUES (?, ?, ?, ?, ?, ?, ?)';
-     await db.execute(insertVendaSql, [vendaIdNumerico, Cd_Pallet, Nm_Pallet, dataVenda, qtVendaInt, parseFloat(Vl_Uni_venda), parseFloat(Valor_Venda)]);
+     const usuarioItem = item.usuario || nomeUsuarioVenda;
+     const insertVendaSql = 'INSERT INTO tb_venda (id_venda, Cd_Pallet, Nm_Pallet, Data_Venda, Qt_Venda, Vl_Unitario, Valor_Venda, usuario) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+     await db.execute(insertVendaSql, [vendaIdNumerico, Cd_Pallet, Nm_Pallet, dataVenda, qtVendaInt, parseFloat(Vl_Uni_venda), parseFloat(Valor_Venda), usuarioItem]);
      console.log('BACKEND: POST /api/vendas - Item de venda inserido para o pallet:', Cd_Pallet);
 
      // Buscar o Vl_Unitario e Valor_Estoque atual do produto no estoque
@@ -1014,8 +1016,8 @@ app.get('/api/health', (req, res) => {
      const saldoAtual = totalCaixa - totalCompras;
 
      await db.execute(
-       'INSERT INTO tb_fluxo_caixa_consolidado (Total_Compras, Saldo_Atual, Diferenca, Data_Caixa) VALUES (?, ?, ?, ?)',
-       [totalCompras, saldoAtual, saldoAtual, dataFechamento]
+       'INSERT INTO tb_fluxo_caixa_consolidado (Total_Compras, Saldo_Atual, Diferenca, Data_Caixa, usuario) VALUES (?, ?, ?, ?, ?)',
+       [totalCompras, saldoAtual, saldoAtual, dataFechamento, 'Sistema']
      );
 
      await db.commit();

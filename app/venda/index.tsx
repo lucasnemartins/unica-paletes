@@ -7,7 +7,8 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet,
  import axios, { AxiosResponse } from 'axios';
  import { useRouter } from 'expo-router';
  import { FontAwesome } from '@expo/vector-icons';
- import { API_URL } from '../config';
+ import { useUser } from '@clerk/clerk-react';
+import { API_URL } from '../config';
 
  interface PalletDetails {
   Cd_Pallet: string;
@@ -27,6 +28,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet,
  }
 
  export default function SaleScreen() {
+  const { user } = useUser();
   const [selectedCdPallet, setSelectedCdPallet] = useState<string | null>(null);
   const [cdPalletInput, setCdPalletInput] = useState('');
   const [qtVendaInput, setQtVendaInput] = useState('');
@@ -166,8 +168,13 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet,
      Qt_Venda: qtVendaInput,
      Vl_Uni_venda: vlUniVendaInput,
      Nm_Pallet: nomePallet,
-     data_venda: dataVendaFormatada, // Usando o formato correto
+     data_venda: dataVendaFormatada,
      Valor_Venda: valorVendaCalculado,
+     usuario: user?.firstName
+       || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+       || user?.emailAddresses?.[0]?.emailAddress
+       || user?.id
+       || 'Desconhecido',
     };
 
     console.log('FRONTEND: Attempting to register sale with data:', itemToSend);
