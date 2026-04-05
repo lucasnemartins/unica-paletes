@@ -170,7 +170,7 @@ import { API_URL } from '../config';
      Nm_Pallet: nomePallet,
      data_venda: dataVendaFormatada,
      Valor_Venda: valorVendaCalculado,
-     usuario: user?.firstName
+     usuario: [user?.firstName, user?.lastName].filter(Boolean).join(' ')
        || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
        || user?.emailAddresses?.[0]?.emailAddress
        || user?.id
