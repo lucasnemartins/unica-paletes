@@ -176,7 +176,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   background: { flex: 1, width: '100%', height: '100%' },
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, paddingTop: 120 },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, paddingTop: 200 },
   card: {
     backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: 16,
