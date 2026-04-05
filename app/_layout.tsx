@@ -1,4 +1,4 @@
-import { ClerkProvider, useAuth } from '@clerk/clerk-react';
+import { ClerkProvider, useAuth, useUser } from '@clerk/clerk-react';
 import { Stack, useRouter, usePathname } from 'expo-router';
 import React, { useEffect } from 'react';
 
@@ -6,18 +6,30 @@ const PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
 
 function InitialLayout() {
   const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoaded) return;
+
     const inLoginPage = pathname === '/login';
+    const inMFASetup = pathname === '/configurar-mfa';
+
     if (!isSignedIn && !inLoginPage) {
       router.replace('/login');
-    } else if (isSignedIn && inLoginPage) {
-      router.replace('/');
+      return;
     }
-  }, [isLoaded, isSignedIn, pathname]);
+
+    if (isSignedIn && inLoginPage) {
+      const totpEnabled = (user as any)?.totpEnabled ?? false;
+      if (!totpEnabled) {
+        router.replace('/configurar-mfa');
+      } else {
+        router.replace('/');
+      }
+    }
+  }, [isLoaded, isSignedIn, pathname, user]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -42,4 +54,4 @@ export default function RootLayout() {
       <InitialLayout />
     </ClerkProvider>
   );
-} 
+}

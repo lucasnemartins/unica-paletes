@@ -152,6 +152,10 @@ export default function ConfigurarMFAScreen() {
           <Text style={styles.buttonText}>CONFIRMAR</Text>
         )}
       </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => router.replace('/')}>
+        <Text style={styles.skipText}>Ignorar por agora →</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -254,6 +258,7 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
   error: { color: '#e53e3e', fontSize: 13, marginBottom: 12, textAlign: 'center' },
+  skipText: { color: '#999', textAlign: 'center', marginTop: 16, fontSize: 13 },
   successIcon: { fontSize: 60, marginBottom: 16 },
   successTitle: {
     fontSize: 22,
