@@ -885,12 +885,13 @@ app.get('/api/health', (req, res) => {
      const novaQtEstoque = qtAtualEstoque - qtVendaInt;
      const novoValorEstoque = novaQtEstoque * vlUnitarioEstoque;
 
-     // Atualizar o estoque (Qt_Estoque e Valor_Estoque = nova_qt * Vl_Unitario)
+     // Atualizar o estoque — Valor_Estoque calculado ANTES de decrementar Qt_Estoque
+     // (MySQL avalia SET da esquerda para direita; calcular Valor primeiro usa o Qt original)
      const updateEstoqueSql = `
       UPDATE tb_Estoque
       SET
-       Qt_Estoque = Qt_Estoque - ?,
-       Valor_Estoque = (Qt_Estoque - ?) * Vl_Unitario
+       Valor_Estoque = (Qt_Estoque - ?) * Vl_Unitario,
+       Qt_Estoque = Qt_Estoque - ?
       WHERE
        Cd_Pallet = ? AND Qt_Estoque >= ?
      `;
