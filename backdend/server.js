@@ -199,7 +199,11 @@ app.get('/api/health', (req, res) => {
       cp.Cd_Pallet,
       cp.Nm_Pallet,
       cp.Vl_Unitario,
-      te.Qt_Estoque,
+      (
+        IFNULL((SELECT SUM(tc.Qt_Pallet) FROM tb_compra tc WHERE tc.Cd_Pallet = cp.Cd_Pallet), 0) +
+        IFNULL((SELECT SUM(th.Qt_Pallet) FROM tb_compra_historico th WHERE th.Cd_Pallet = cp.Cd_Pallet), 0) -
+        IFNULL((SELECT SUM(tv.Qt_Venda) FROM tb_venda tv WHERE tv.Cd_Pallet = cp.Cd_Pallet), 0)
+      ) AS Qt_Estoque,
       te.Valor_Estoque
      FROM
       Cd_Pallet cp
@@ -224,7 +228,11 @@ app.get('/api/health', (req, res) => {
       cp.Cd_Pallet,
       cp.Nm_Pallet,
       cp.Vl_Unitario,
-      te.Qt_Estoque,
+      (
+        IFNULL((SELECT SUM(tc.Qt_Pallet) FROM tb_compra tc WHERE tc.Cd_Pallet = cp.Cd_Pallet), 0) +
+        IFNULL((SELECT SUM(th.Qt_Pallet) FROM tb_compra_historico th WHERE th.Cd_Pallet = cp.Cd_Pallet), 0) -
+        IFNULL((SELECT SUM(tv.Qt_Venda) FROM tb_venda tv WHERE tv.Cd_Pallet = cp.Cd_Pallet), 0)
+      ) AS Qt_Estoque,
       te.Valor_Estoque
      FROM
       Cd_Pallet cp
