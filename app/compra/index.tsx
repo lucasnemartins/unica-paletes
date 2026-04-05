@@ -98,12 +98,13 @@ export default function HomeScreen() {
   }, [pallets]);
 
   const handleSubmit = async () => {
-    const nomeUsuario = user?.fullName
-      || user?.firstName
-      || (user as any)?.primaryEmailAddress?.emailAddress
-      || user?.emailAddresses?.[0]?.emailAddress
-      || user?.id
-      || 'Desconhecido';
+    const nomeParts = [user?.firstName, user?.lastName].filter(Boolean);
+    const nomeUsuario = nomeParts.length > 0
+      ? nomeParts.join(' ')
+      : ((user as any)?.primaryEmailAddress?.emailAddress
+          || user?.emailAddresses?.[0]?.emailAddress
+          || user?.id
+          || 'Desconhecido');
     try {
       setLoading(true);
       const palletsToSend: Pallet[] = pallets
