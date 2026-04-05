@@ -30,7 +30,13 @@ export default function LoginScreen() {
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
       } else if (result.status === 'needs_second_factor') {
-        setStep('totp');
+        const factors = result.supportedSecondFactors ?? [];
+        const hasTotp = factors.some((f: any) => f.strategy === 'totp');
+        if (hasTotp) {
+          setStep('totp');
+        } else {
+          setError('2FA necessário mas autenticador não configurado. Contacta o administrador.');
+        }
       } else {
         setError(`Erro inesperado: ${result.status}`);
       }
