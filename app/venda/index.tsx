@@ -240,7 +240,7 @@ import { API_URL } from '../config';
         <View style={styles.userBadge}>
           <FontAwesome name="user" size={14} color="#b8934b" />
           <Text style={styles.loggedInUser}>
-            {[user?.firstName, user?.lastName].filter(Boolean).join(' ')
+            {user?.firstName
               || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
               || user?.emailAddresses?.[0]?.emailAddress
               || user?.id
