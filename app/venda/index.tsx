@@ -130,12 +130,18 @@ import { API_URL } from '../config';
   const handleCdPalletSelect = (itemValue: string) => {
    setSelectedCdPallet(itemValue);
    setCdPalletInput(itemValue);
+   setQtVendaInput('');
+   setVlUniVendaInput('');
+   setValorVendaCalculado('');
    fetchPalletDetails(itemValue);
   };
 
   const handleCdPalletSelectCustom = (itemValue: string) => {
    setSelectedCdPallet(itemValue);
    setCdPalletInput(itemValue);
+   setQtVendaInput('');
+   setVlUniVendaInput('');
+   setValorVendaCalculado('');
    fetchPalletDetails(itemValue);
    setIsDropdownVisible(false);
   };
