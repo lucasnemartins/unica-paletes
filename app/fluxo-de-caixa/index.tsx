@@ -19,7 +19,7 @@ interface CashFlowData {
 
 export default function FluxoCaixaScreen() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [compraInput, setCompraInput] = useState('');
   const [cashFlowHistory, setCashFlowHistory] = useState<CashFlowData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,12 +86,11 @@ export default function FluxoCaixaScreen() {
     }
 
     const nomeParts = [user?.firstName, user?.lastName].filter(Boolean);
+    const primaryEmail = user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+      || user?.emailAddresses?.[0]?.emailAddress;
     const nomeUsuario = nomeParts.length > 0
       ? nomeParts.join(' ')
-      : ((user as any)?.primaryEmailAddress?.emailAddress
-          || user?.emailAddresses?.[0]?.emailAddress
-          || user?.id
-          || 'Desconhecido');
+      : (primaryEmail || user?.id || 'Desconhecido');
 
     try {
       setLoading(true);
@@ -162,6 +161,15 @@ export default function FluxoCaixaScreen() {
 
         <View style={styles.header}>
           <Text style={styles.title}>CAIXA</Text>
+          {isLoaded && (
+            <Text style={styles.loggedInUser}>
+              👤 {[user?.firstName, user?.lastName].filter(Boolean).join(' ')
+                || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+                || user?.emailAddresses?.[0]?.emailAddress
+                || user?.id
+                || 'Não identificado'}
+            </Text>
+          )}
         </View>
 
         <View style={styles.container}>
@@ -472,6 +480,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#b8934b',
     marginTop: 2,
+  },
+  loggedInUser: {
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 4,
   },
   historyItemText: {
     fontSize: 14,

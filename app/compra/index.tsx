@@ -21,7 +21,7 @@ interface Totals {
 }
 
 export default function HomeScreen() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [pallets, setPallets] = useState<Pallet[]>([]);
   const [totals, setTotals] = useState<Totals>({ totalQt: 0, totalValue: 0 });
   const [imageUri, setImageUri] = useState<any>(null);
@@ -98,20 +98,12 @@ export default function HomeScreen() {
   }, [pallets]);
 
   const handleSubmit = async () => {
-    console.log('DEBUG user:', JSON.stringify({
-      id: user?.id,
-      firstName: user?.firstName,
-      lastName: user?.lastName,
-      fullName: user?.fullName,
-      email: user?.emailAddresses?.[0]?.emailAddress,
-    }));
     const nomeParts = [user?.firstName, user?.lastName].filter(Boolean);
+    const primaryEmail = user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+      || user?.emailAddresses?.[0]?.emailAddress;
     const nomeUsuario = nomeParts.length > 0
       ? nomeParts.join(' ')
-      : ((user as any)?.primaryEmailAddress?.emailAddress
-          || user?.emailAddresses?.[0]?.emailAddress
-          || user?.id
-          || 'Desconhecido');
+      : (primaryEmail || user?.id || 'Desconhecido');
     try {
       setLoading(true);
       const palletsToSend: Pallet[] = pallets
@@ -358,6 +350,15 @@ export default function HomeScreen() {
 
         <View style={styles.header}>
           <Text style={styles.title}>COMPRA</Text>
+          {isLoaded && (
+            <Text style={styles.loggedInUser}>
+              👤 {[user?.firstName, user?.lastName].filter(Boolean).join(' ')
+                || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+                || user?.emailAddresses?.[0]?.emailAddress
+                || user?.id
+                || 'Não identificado'}
+            </Text>
+          )}
         </View>
 
         {loading && (
@@ -754,6 +755,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#b8934b',
     marginTop: 2,
+  },
+  loggedInUser: {
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 4,
   },
   fotosSection: {
     marginTop: 16,
