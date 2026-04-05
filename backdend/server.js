@@ -502,11 +502,10 @@ app.get('/api/health', (req, res) => {
         'SELECT IFNULL(SUM(valor_total),0) AS totalCompras FROM tb_compra_consolidado'
       );
       const totalCompras = parseFloat(compraRows[0].totalCompras);
-      const saldoAtual = totalCaixa - totalCompras;
-      const diferenca = saldoAtual - totalCompras;
+      const saldo = totalCaixa - totalCompras;
       await db.execute(
-        'INSERT INTO tb_fluxo_caixa_consolidado (Total_Compras, Saldo_Atual, Diferenca, Data_Caixa, usuario) VALUES (?, ?, ?, ?, ?)',
-        [totalCompras, saldoAtual, diferenca, dataCompra, nomeUsuario]
+        'INSERT INTO tb_fluxo_caixa_consolidado (Total_Compras, Total_Caixa, Diferenca, Data_Caixa, usuario) VALUES (?, ?, ?, ?, ?)',
+        [totalCompras, totalCaixa, saldo, dataCompra, nomeUsuario]
       );
       console.log('BACKEND: tb_fluxo_caixa_consolidado atualizado após compra.');
     } catch (consErr) {
@@ -1021,11 +1020,11 @@ app.get('/api/health', (req, res) => {
      const [[{ totalComprasHist }]] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS totalComprasHist FROM tb_compra_consolidado_historico');
      const totalCaixa = parseFloat(totalCaixaHist);
      const totalCompras = parseFloat(totalComprasHist);
-     const saldoAtual = totalCaixa - totalCompras;
+     const saldo = totalCaixa - totalCompras;
 
      await db.execute(
-       'INSERT INTO tb_fluxo_caixa_consolidado (Total_Compras, Saldo_Atual, Diferenca, Data_Caixa, usuario) VALUES (?, ?, ?, ?, ?)',
-       [totalCompras, saldoAtual, saldoAtual, dataFechamento, 'Sistema']
+       'INSERT INTO tb_fluxo_caixa_consolidado (Total_Compras, Total_Caixa, Diferenca, Data_Caixa, usuario) VALUES (?, ?, ?, ?, ?)',
+       [totalCompras, totalCaixa, saldo, dataFechamento, 'Sistema']
      );
 
      await db.commit();
