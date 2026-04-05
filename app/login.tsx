@@ -31,12 +31,8 @@ export default function LoginScreen() {
         await setActive({ session: result.createdSessionId });
       } else if (result.status === 'needs_second_factor') {
         const factors = result.supportedSecondFactors ?? [];
-        const hasTotp = factors.some((f: any) => f.strategy === 'totp');
-        if (hasTotp) {
-          setStep('totp');
-        } else {
-          setError('2FA necessário mas autenticador não configurado. Contacta o administrador.');
-        }
+        const strategies = factors.map((f: any) => f.strategy).join(', ');
+        setError(`Debug 2FA - estratégias disponíveis: [${strategies || 'nenhuma'}]`);
       } else {
         setError(`Erro inesperado: ${result.status}`);
       }
