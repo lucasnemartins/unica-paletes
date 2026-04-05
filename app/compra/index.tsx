@@ -352,13 +352,16 @@ export default function HomeScreen() {
           <View style={styles.titleRow}>
             <Text style={styles.title}>COMPRA</Text>
             {isLoaded && (
-              <Text style={styles.loggedInUser}>
-                👤 {user?.firstName
-                  || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
-                  || user?.emailAddresses?.[0]?.emailAddress
-                  || user?.id
-                  || ''}
-              </Text>
+              <View style={styles.userBadge}>
+                <FontAwesome name="user" size={14} color="#b8934b" />
+                <Text style={styles.loggedInUser}>
+                  {user?.firstName
+                    || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+                    || user?.emailAddresses?.[0]?.emailAddress
+                    || user?.id
+                    || ''}
+                </Text>
+              </View>
             )}
           </View>
         </View>
@@ -762,7 +765,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 12,
+  },
+  userBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   loggedInUser: {
     fontSize: 14,

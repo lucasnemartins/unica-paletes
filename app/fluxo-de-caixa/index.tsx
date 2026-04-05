@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ImageBackground, ActivityIndicator, Modal } from 'react-native';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Feather, FontAwesome } from '@expo/vector-icons';
 import { useUser } from '@clerk/clerk-react';
 import { API_URL } from '../config';
 
@@ -163,13 +163,16 @@ export default function FluxoCaixaScreen() {
           <View style={styles.titleRow}>
             <Text style={styles.title}>CAIXA</Text>
             {isLoaded && (
-              <Text style={styles.loggedInUser}>
-                👤 {user?.firstName
-                  || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
-                  || user?.emailAddresses?.[0]?.emailAddress
-                  || user?.id
-                  || ''}
-              </Text>
+              <View style={styles.userBadge}>
+                <FontAwesome name="user" size={14} color="#b8934b" />
+                <Text style={styles.loggedInUser}>
+                  {user?.firstName
+                    || user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+                    || user?.emailAddresses?.[0]?.emailAddress
+                    || user?.id
+                    || ''}
+                </Text>
+              </View>
             )}
           </View>
         </View>
@@ -487,7 +490,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 12,
+  },
+  userBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   loggedInUser: {
     fontSize: 14,
