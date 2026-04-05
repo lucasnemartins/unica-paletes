@@ -98,6 +98,13 @@ export default function HomeScreen() {
   }, [pallets]);
 
   const handleSubmit = async () => {
+    console.log('DEBUG user:', JSON.stringify({
+      id: user?.id,
+      firstName: user?.firstName,
+      lastName: user?.lastName,
+      fullName: user?.fullName,
+      email: user?.emailAddresses?.[0]?.emailAddress,
+    }));
     const nomeParts = [user?.firstName, user?.lastName].filter(Boolean);
     const nomeUsuario = nomeParts.length > 0
       ? nomeParts.join(' ')
