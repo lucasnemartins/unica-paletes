@@ -456,7 +456,8 @@ app.get('/api/health', (req, res) => {
       if (existente.length > 0) {
         // Atualizar estoque existente
         const novaQt = Math.floor(existente[0].Qt_Estoque + parseInt(pallet.Qt));
-        const novoValorEstoque = existente[0].Valor_Estoque + parseFloat(pallet.Valor);
+        const vlUnitario = parseFloat(existente[0].Vl_Unitario) || parseFloat(pallet.UnitValue) || 0;
+        const novoValorEstoque = novaQt * vlUnitario;
         console.log(`BACKEND: Atualizando estoque do pallet ${pallet.Cd_Pallet} - Nova Qt: ${novaQt}, Novo Valor: ${novoValorEstoque}`);
         
         const [resultUpdate] = await db.execute(
@@ -874,24 +875,25 @@ app.get('/api/health', (req, res) => {
      }
      const vlUnitarioEstoque = parseFloat(resultVlUnitarioEstoque[0].Vl_Unitario);
      const valorEstoqueAtual = parseFloat(resultVlUnitarioEstoque[0].Valor_Estoque || 0);
-     const valorRemoverEstoque = vlUnitarioEstoque * parseInt(Qt_Venda);
-     const novoValorEstoque = valorEstoqueAtual - valorRemoverEstoque;
+     const valorRemoverEstoque = vlUnitarioEstoque * qtVendaInt;
+     const qtAtualEstoque = Math.floor(valorEstoqueAtual / vlUnitarioEstoque) || 0;
+     const novaQtEstoque = qtAtualEstoque - qtVendaInt;
+     const novoValorEstoque = novaQtEstoque * vlUnitarioEstoque;
 
-     // Atualizar o estoque (Qt_Estoque e Valor_Estoque)
+     // Atualizar o estoque (Qt_Estoque e Valor_Estoque = nova_qt * Vl_Unitario)
      const updateEstoqueSql = `
       UPDATE tb_Estoque
       SET
        Qt_Estoque = Qt_Estoque - ?,
-       Valor_Estoque = ?
+       Valor_Estoque = (Qt_Estoque - ?) * Vl_Unitario
       WHERE
-       Cd_Pallet = ? AND Qt_Estoque >= ? AND Valor_Estoque >= ?
+       Cd_Pallet = ? AND Qt_Estoque >= ?
      `;
      const [resultUpdateEstoque] = await db.execute(updateEstoqueSql, [
       qtVendaInt,
-      novoValorEstoque,
+      qtVendaInt,
       Cd_Pallet,
       qtVendaInt,
-      valorRemoverEstoque,
      ]);
 
      if (resultUpdateEstoque.affectedRows === 0) {
