@@ -37,6 +37,8 @@ export default function HomeScreen() {
     data_compra: string;
     Qt_Total: number;
     valor_total: number;
+    usuario?: string;
+    fonte?: 'atual' | 'historico';
   }
   const [showHistorico, setShowHistorico] = useState(false);
   const [historico, setHistorico] = useState<HistoricoCompra[]>([]);
@@ -527,15 +529,22 @@ export default function HomeScreen() {
                   onPress={() => fetchFotosHistorico(compra.id)}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.historicoData}>
-                      {new Date(compra.data_compra).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}{' '}
-                      {new Date(compra.data_compra).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                      <Text style={styles.historicoData}>
+                        {new Date(compra.data_compra).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}{' '}
+                        {new Date(compra.data_compra).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                      <View style={[styles.fonteBadge, compra.fonte === 'historico' && styles.fonteBadgeHistorico]}>
+                        <Text style={styles.fonteBadgeText}>
+                          {compra.fonte === 'historico' ? 'Histórico' : 'Sessão atual'}
+                        </Text>
+                      </View>
+                    </View>
                     <Text style={styles.historicoInfo}>
                       {compra.Qt_Total} paletes · € {Number(compra.valor_total).toFixed(2)}
                     </Text>
-                    {(compra as any).usuario && (
-                      <Text style={styles.historicoUsuario}>👤 {(compra as any).usuario}</Text>
+                    {compra.usuario && (
+                      <Text style={styles.historicoUsuario}>👤 {compra.usuario}</Text>
                     )}
                   </View>
                   <FontAwesome name="camera" size={16} color="#b8934b" />
@@ -758,6 +767,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#b8934b',
     marginTop: 2,
+  },
+  fonteBadge: {
+    backgroundColor: '#e8f5e9',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  fonteBadgeHistorico: {
+    backgroundColor: '#fff3e0',
+  },
+  fonteBadgeText: {
+    fontSize: 10,
+    color: '#555',
+    fontWeight: '600',
   },
   userBadge: {
     position: 'absolute',

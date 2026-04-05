@@ -641,9 +641,15 @@ app.get('/api/health', (req, res) => {
   // Rota para listar histórico de compras
   app.get('/api/compras/historico', async (req, res) => {
     try {
-      const [rows] = await db.execute(
-        'SELECT id, data_compra, Qt_Total, valor_total, usuario FROM tb_compra_consolidado ORDER BY data_compra DESC LIMIT 50'
-      );
+      const [rows] = await db.execute(`
+        SELECT id, data_compra, Qt_Total, valor_total, usuario, 'atual' AS fonte
+        FROM tb_compra_consolidado
+        UNION ALL
+        SELECT id, data_compra, Qt_Total, valor_total, usuario, 'historico' AS fonte
+        FROM tb_compra_consolidado_historico
+        ORDER BY data_compra DESC
+        LIMIT 100
+      `);
       res.json(rows);
     } catch (err) {
       console.error('BACKEND: Erro ao buscar histórico de compras:', err);
