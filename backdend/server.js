@@ -1073,26 +1073,15 @@ app.get('/api/health', (req, res) => {
   app.get('/api/fluxo-caixa', async (req, res) => {
    const { data } = req.query;
    try {
-    let whereAtual = '1=1';
-    let whereHist = '1=1';
+    let query = 'SELECT id_caixa, Caixa_Atual, IFNULL(Compra,0) AS Compra, IFNULL(Diferenca,0) AS Diferenca, Data_Caixa, usuario FROM tb_fluxo_caixa WHERE 1=1';
     const queryParams = [];
 
     if (data) {
-     whereAtual += ' AND DATE(Data_Caixa) = ?';
-     whereHist  += ' AND DATE(Data_Caixa) = ?';
-     queryParams.push(data, data);
+     query += ' AND DATE(Data_Caixa) = ?';
+     queryParams.push(data);
     }
 
-    const query = `
-      SELECT id_caixa, Caixa_Atual, IFNULL(Compra,0) AS Compra, IFNULL(Diferenca,0) AS Diferenca, Data_Caixa, usuario, 'atual' AS fonte
-      FROM tb_fluxo_caixa
-      WHERE ${whereAtual}
-      UNION ALL
-      SELECT id, Caixa_Atual, IFNULL(Compra,0) AS Compra, IFNULL(Diferenca,0) AS Diferenca, Data_Caixa, usuario, 'historico' AS fonte
-      FROM tb_caixa_historico
-      WHERE ${whereHist}
-      ORDER BY Data_Caixa DESC
-    `;
+    query += ' ORDER BY Data_Caixa DESC';
     const [result] = await db.execute(query, queryParams);
     res.json(result);
    } catch (err) {
