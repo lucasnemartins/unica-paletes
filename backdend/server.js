@@ -503,11 +503,15 @@ app.get('/api/health', (req, res) => {
       const totalComprasVal = parseFloat(totalComprasSnap);
       const totalCaixaVal = parseFloat(totalCaixaSnap);
       const saldoSnap = totalCaixaVal - totalComprasVal;
-      await db.execute(
+      const [resultCompraFC] = await db.execute(
         'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa, usuario, Compra, Diferenca) VALUES (?, ?, ?, ?, ?)',
         [0, dataCompra, nomeUsuario, totalComprasVal, saldoSnap]
       );
-      console.log('BACKEND: Nova linha inserida em tb_fluxo_caixa após compra.');
+      await db.execute(
+        'INSERT INTO tb_caixa_historico (id, Caixa_Atual, Data_Caixa, usuario, Compra, Diferenca) VALUES (?, ?, ?, ?, ?, ?)',
+        [resultCompraFC.insertId, 0, dataCompra, nomeUsuario, totalComprasVal, saldoSnap]
+      );
+      console.log('BACKEND: Nova linha inserida em tb_fluxo_caixa e tb_caixa_historico após compra.');
     } catch (fcErr) {
       console.error('Erro ao inserir linha em tb_fluxo_caixa após compra:', fcErr);
     }
@@ -980,11 +984,15 @@ app.get('/api/health', (req, res) => {
      const novoCaixaTotal = parseFloat(totalCaixaAtual) + valorAdicionado;
      const diferenca = novoCaixaTotal - totalCompras;
 
-     await db.execute(
+     const [resultCaixa] = await db.execute(
        'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa, usuario, Compra, Diferenca) VALUES (?, ?, ?, ?, ?)',
        [valorAdicionado, dataCaixa, nomeUsuario, totalCompras, diferenca]
      );
-     console.log('BACKEND: /api/registrar-compra - Inserido em tb_fluxo_caixa');
+     await db.execute(
+       'INSERT INTO tb_caixa_historico (id, Caixa_Atual, Data_Caixa, usuario, Compra, Diferenca) VALUES (?, ?, ?, ?, ?, ?)',
+       [resultCaixa.insertId, valorAdicionado, dataCaixa, nomeUsuario, totalCompras, diferenca]
+     );
+     console.log('BACKEND: /api/registrar-compra - Inserido em tb_fluxo_caixa e tb_caixa_historico');
      res.json({ message: 'Valor adicionado ao caixa com sucesso!' });
    } catch (error) {
      console.error('BACKEND: Erro em /api/registrar-compra:', error);
@@ -1009,14 +1017,7 @@ app.get('/api/health', (req, res) => {
      const totalCaixaSessao = parseFloat(totalSessaoCaixa);
      const totalComprasSessao = parseFloat(totalSessaoCompras);
      const diferencaSessao = totalCaixaSessao - totalComprasSessao;
-     // Detalhe por adição (igual tb_compra → tb_compra_historico)
-     const [linhasCaixaSessao] = await db.execute('SELECT id_caixa, Caixa_Atual, Data_Caixa, usuario, IFNULL(Compra,0) AS Compra, IFNULL(Diferenca,0) AS Diferenca FROM tb_fluxo_caixa');
-     for (const linha of linhasCaixaSessao) {
-       await db.execute(
-         'INSERT INTO tb_caixa_historico (id, Caixa_Atual, Data_Caixa, usuario, Compra, Diferenca) VALUES (?, ?, ?, ?, ?, ?)',
-         [linha.id_caixa, linha.Caixa_Atual, linha.Data_Caixa, linha.usuario, linha.Compra, linha.Diferenca]
-       );
-     }
+     // tb_caixa_historico já é populado em tempo real a cada evento — não precisa copiar aqui
      if (totalCaixaSessao > 0 || totalComprasSessao > 0) {
        await db.execute(
          'INSERT INTO tb_fluxo_caixa_historico (Caixa_Atual, Total_Compras, Diferenca, Data_Caixa, usuario) VALUES (?, ?, ?, ?, ?)',
