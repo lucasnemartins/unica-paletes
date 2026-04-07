@@ -61,7 +61,7 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.row}>
-            <TouchableOpacity style={styles.button} onPress={irParaPalete}>
+            <TouchableOpacity style={[styles.button, styles.paleteButton]} onPress={irParaPalete}>
               <Text style={styles.buttonText}>PALETES</Text>
             </TouchableOpacity>
           </View>
@@ -113,6 +113,9 @@ export default function HomeScreen() {
     fontWeight: 'bold',
     fontSize: 16,
     textAlign: 'center',
+  },
+  paleteButton: {
+    marginLeft: 60,
   },
   logoutButton: {
     position: 'absolute',
