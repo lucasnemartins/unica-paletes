@@ -21,7 +21,10 @@ export default function HomeScreen() {
 
   const irParaFluxoDeCaixa = () => {
     router.push('/fluxo-de-caixa');
-    
+  };
+
+  const irParaPalete = () => {
+    router.push('/palete');
   };
   
 
@@ -54,6 +57,12 @@ export default function HomeScreen() {
 
             <TouchableOpacity style={styles.button} onPress={irParaFluxoDeCaixa}>
               <Text style={styles.buttonText}>CAIXA</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.row}>
+            <TouchableOpacity style={styles.button} onPress={irParaPalete}>
+              <Text style={styles.buttonText}>PALETES</Text>
             </TouchableOpacity>
           </View>
         </View>

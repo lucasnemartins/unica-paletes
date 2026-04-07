@@ -262,6 +262,27 @@ app.get('/api/health', (req, res) => {
    }
   });
 
+  // Rota para atualizar o Vl_Unitario de um pallet e recalcular o Valor_Estoque
+  app.put('/api/pallets/:cdPallet/valor-unitario', async (req, res) => {
+   const { cdPallet } = req.params;
+   const { Vl_Unitario } = req.body;
+   if (!cdPallet || Vl_Unitario === undefined || isNaN(parseFloat(Vl_Unitario))) {
+    return res.status(400).json({ error: 'Forneça um Cd_Pallet válido e um Vl_Unitario numérico.' });
+   }
+   try {
+    await db.execute('UPDATE Cd_Pallet SET Vl_Unitario = ? WHERE Cd_Pallet = ?', [parseFloat(Vl_Unitario), cdPallet]);
+    const [estoque] = await db.execute('SELECT Qt_Estoque FROM tb_Estoque WHERE Cd_Pallet = ?', [cdPallet]);
+    if (estoque.length > 0) {
+     const novoValorEstoque = (parseFloat(estoque[0].Qt_Estoque) * parseFloat(Vl_Unitario)).toFixed(2);
+     await db.execute('UPDATE tb_Estoque SET Vl_Unitario = ?, Valor_Estoque = ? WHERE Cd_Pallet = ?', [parseFloat(Vl_Unitario), novoValorEstoque, cdPallet]);
+    }
+    res.json({ message: 'Valor unitário atualizado com sucesso.' });
+   } catch (err) {
+    console.error('BACKEND: Erro ao atualizar Vl_Unitario:', err);
+    res.status(500).json({ error: 'Erro ao atualizar valor unitário.' });
+   }
+  });
+
   // Rota para AJUSTAR MANUALMENTE a quantidade e recalcular o Valor_Estoque
   app.post('/api/adjust-estoque', async (req, res) => {
    const { Cd_Pallet, Qt_Ajuste } = req.body;
