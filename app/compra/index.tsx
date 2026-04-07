@@ -647,11 +647,9 @@ export default function HomeScreen() {
                 <ActivityIndicator size="large" color="#b8934b" style={{ marginVertical: 20 }} />
               ) : (
                 historico.map((compra) => (
-                  <TouchableOpacity
+                  <View
                     key={`cancelar-${compra.id}-${compra.fonte}`}
                     style={[styles.historicoItem, { borderLeftWidth: 4, borderLeftColor: compra.fonte === 'historico' ? '#ff9800' : '#b8934b' }]}
-                    onPress={() => handleCancelarCompra(compra.id)}
-                    disabled={cancelandoId === compra.id}
                   >
                     <View style={{ flex: 1 }}>
                       <Text style={styles.historicoData}>
@@ -662,10 +660,16 @@ export default function HomeScreen() {
                       </Text>
                       {compra.usuario && <Text style={styles.historicoUsuario}>👤 {compra.usuario}</Text>}
                     </View>
-                    {cancelandoId === compra.id
-                      ? <ActivityIndicator size="small" color="#e53935" />
-                      : <FontAwesome name="ban" size={18} color="#e53935" />}
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.button, styles.cancelButton, { paddingHorizontal: 12, paddingVertical: 8 }]}
+                      onPress={() => handleCancelarCompra(compra.id)}
+                      disabled={cancelandoId === compra.id}
+                    >
+                      {cancelandoId === compra.id
+                        ? <ActivityIndicator size="small" color="white" />
+                        : <FontAwesome name="ban" size={16} color="white" />}
+                    </TouchableOpacity>
+                  </View>
                 ))
               )}
             </ScrollView>
