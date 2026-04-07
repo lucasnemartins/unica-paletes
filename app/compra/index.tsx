@@ -274,26 +274,34 @@ export default function HomeScreen() {
     }
   };
 
-  const handleCancelarCompra = async () => {
-    if (!selectedCancelarId) return;
+  const handleCancelarItens = async () => {
+    const nomeParts = [user?.firstName, user?.lastName].filter(Boolean);
+    const primaryEmail = user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress || user?.emailAddresses?.[0]?.emailAddress;
+    const nomeUsuario = nomeParts.length > 0 ? nomeParts.join(' ') : (primaryEmail || user?.id || 'Desconhecido');
+
+    const palletsParaCancelar = pallets.filter(p => p.Qt !== null && p.Qt !== '' && p.Valor !== null && p.Valor !== '');
+    if (palletsParaCancelar.length === 0) {
+      Alert.alert('Aviso', 'Digita as quantidades e valores dos itens que pretendes cancelar.');
+      return;
+    }
+
+    const confirmado = window.confirm(
+      `Confirmas o cancelamento de ${palletsParaCancelar.length} item(s) digitado(s)?\nO estoque será revertido.`
+    );
+    if (!confirmado) return;
+
     try {
-      setCancelandoId(selectedCancelarId);
-      const nomeParts = [user?.firstName, user?.lastName].filter(Boolean);
-      const primaryEmail = user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress || user?.emailAddresses?.[0]?.emailAddress;
-      const nomeUsuario = nomeParts.length > 0 ? nomeParts.join(' ') : (primaryEmail || user?.id || 'Desconhecido');
-      await axios.post(`${API_URL}/api/compras/${selectedCancelarId}/cancelar`, { usuario: nomeUsuario });
-      Alert.alert('Sucesso', `Compra #${selectedCancelarId} cancelada. Estoque revertido.`);
-      setSelectedCancelarId(null);
-      setShowCancelarModal(false);
+      setLoading(true);
+      await axios.post(`${API_URL}/api/compras/cancelar-itens`, { pallets: palletsParaCancelar, usuario: nomeUsuario });
+      Alert.alert('Sucesso', 'Itens cancelados. Estoque revertido.');
       setPallets(prev => prev.map(p => ({ ...p, Qt: null, Valor: null })));
       setPendingPhotos([]);
       setPhotos([]);
       setPurchaseId(null);
-      fetchHistorico();
     } catch (err: any) {
-      Alert.alert('Erro', err.response?.data?.error || 'Falha ao cancelar compra.');
+      Alert.alert('Erro', err.response?.data?.error || 'Falha ao cancelar itens.');
     } finally {
-      setCancelandoId(null);
+      setLoading(false);
     }
   };
 
@@ -483,7 +491,7 @@ export default function HomeScreen() {
               <FontAwesome name="camera" size={20} color="white" style={{ marginRight: 5 }} />
               <Text style={styles.buttonText}>Foto ({pendingPhotos.length}/3)</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => { fetchHistorico(); setShowCancelarModal(true); }} disabled={loading}>
+            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancelarItens} disabled={loading}>
               <FontAwesome name="ban" size={18} color="white" style={{ marginRight: 5 }} />
               <Text style={styles.buttonText}>Cancelar</Text>
             </TouchableOpacity>

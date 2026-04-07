@@ -680,6 +680,90 @@ app.get('/api/health', (req, res) => {
     }
   });
 
+  // Cancelar itens digitados — insere registos negativos para paletes fornecidos directamente
+  app.post('/api/compras/cancelar-itens', async (req, res) => {
+    const { pallets, usuario } = req.body;
+    const nomeUsuario = usuario || 'Desconhecido';
+
+    if (!pallets || pallets.length === 0) {
+      return res.status(400).json({ error: 'Nenhum item fornecido para cancelar.' });
+    }
+
+    try {
+      const now = new Date();
+      const pad = n => n.toString().padStart(2, '0');
+      const dataCancelamento = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+      await db.beginTransaction();
+
+      const [[{ maxId }]] = await db.execute('SELECT MAX(id_compra) AS maxId FROM tb_compra');
+      const idCancelamento = (maxId || 0) + 1;
+
+      let qtTotalCancelada = 0;
+      let valorTotalCancelado = 0;
+
+      for (const item of pallets) {
+        const qt = Math.abs(parseInt(item.Qt));
+        const vl = Math.abs(parseFloat(item.Valor));
+        if (!qt || !vl) continue;
+
+        qtTotalCancelada += qt;
+        valorTotalCancelado += vl;
+
+        await db.execute(
+          'INSERT INTO tb_compra (id_compra, Cd_Pallet, Nm_Pallet, Data_Compra, Qt_Pallet, Vl, usuario) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [idCancelamento, item.Cd_Pallet, item.Nm_Pallet, dataCancelamento, -qt, -vl, nomeUsuario]
+        );
+
+        const [estoque] = await db.execute('SELECT Qt_Estoque, Vl_Unitario FROM tb_Estoque WHERE Cd_Pallet = ?', [item.Cd_Pallet]);
+        if (estoque.length > 0) {
+          const novaQt = Math.max(0, estoque[0].Qt_Estoque - qt);
+          const novoValor = novaQt * parseFloat(estoque[0].Vl_Unitario);
+          await db.execute(
+            'UPDATE tb_Estoque SET Qt_Estoque = ?, Valor_Estoque = ? WHERE Cd_Pallet = ?',
+            [novaQt, novoValor, item.Cd_Pallet]
+          );
+        }
+      }
+
+      if (qtTotalCancelada === 0) {
+        await db.rollback();
+        return res.status(400).json({ error: 'Nenhum item válido para cancelar.' });
+      }
+
+      await db.execute(
+        'INSERT INTO tb_compra_consolidado (data_compra, Qt_Total, valor_total, usuario) VALUES (?, ?, ?, ?)',
+        [dataCancelamento, -qtTotalCancelada, -valorTotalCancelado, nomeUsuario]
+      );
+
+      await db.commit();
+
+      try {
+        const [[{ totalComprasSnap }]] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS totalComprasSnap FROM tb_compra_consolidado');
+        const [[{ totalCaixaSnap }]] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixaSnap FROM tb_fluxo_caixa');
+        const totalComprasVal = parseFloat(totalComprasSnap);
+        const totalCaixaVal = parseFloat(totalCaixaSnap);
+        const saldoSnap = totalCaixaVal - totalComprasVal;
+        const [resultFC] = await db.execute(
+          'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa, usuario, Compra, Diferenca) VALUES (?, ?, ?, ?, ?)',
+          [0, dataCancelamento, nomeUsuario, totalComprasVal, saldoSnap]
+        );
+        await db.execute(
+          'INSERT INTO tb_caixa_historico (id, Caixa_Atual, Data_Caixa, usuario, Compra, Diferenca) VALUES (?, ?, ?, ?, ?, ?)',
+          [resultFC.insertId, 0, dataCancelamento, nomeUsuario, totalComprasVal, saldoSnap]
+        );
+      } catch (fcErr) {
+        console.error('Erro ao registar cancelamento no fluxo de caixa:', fcErr);
+      }
+
+      res.json({ message: `Cancelamento registado. ${qtTotalCancelada} paletes revertidos.` });
+    } catch (error) {
+      await db.rollback();
+      console.error('BACKEND: Erro ao cancelar itens:', error);
+      res.status(500).json({ error: 'Erro ao cancelar itens.', details: error.message });
+    }
+  });
+
   // Cancelar compra — insere registos negativos para reverter
   app.post('/api/compras/:id/cancelar', async (req, res) => {
     const idCompra = parseInt(req.params.id);
