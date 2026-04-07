@@ -47,9 +47,6 @@ export default function HomeScreen() {
   const [fotosHistorico, setFotosHistorico] = useState<string[]>([]);
   const [loadingFotos, setLoadingFotos] = useState(false);
   const [fotoExpandida, setFotoExpandida] = useState<string | null>(null);
-  const [showCancelarModal, setShowCancelarModal] = useState(false);
-  const [cancelandoId, setCancelandoId] = useState<number | null>(null);
-  const [selectedCancelarId, setSelectedCancelarId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchPallets = async () => {
@@ -631,68 +628,6 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Modal Cancelar Compra */}
-      <Modal visible={showCancelarModal} animationType="slide" transparent onRequestClose={() => { setShowCancelarModal(false); setSelectedCancelarId(null); }}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Cancelar Compra</Text>
-              <TouchableOpacity onPress={() => { setShowCancelarModal(false); setSelectedCancelarId(null); }}>
-                <FontAwesome name="times" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-            <Text style={{ color: '#666', marginBottom: 10, paddingHorizontal: 4 }}>
-              Toca na compra para selecionar e depois confirma o cancelamento.
-            </Text>
-            <ScrollView>
-              {loadingHistorico ? (
-                <ActivityIndicator size="large" color="#b8934b" style={{ marginVertical: 20 }} />
-              ) : (
-                historico.map((compra) => {
-                  const isSelected = selectedCancelarId === compra.id;
-                  return (
-                    <TouchableOpacity
-                      key={`cancelar-${compra.id}-${compra.fonte}`}
-                      style={[
-                        styles.historicoItem,
-                        { borderLeftWidth: 4, borderLeftColor: compra.fonte === 'historico' ? '#ff9800' : '#b8934b' },
-                        isSelected && { backgroundColor: '#fdecea', borderWidth: 2, borderColor: '#e53935' },
-                      ]}
-                      onPress={() => setSelectedCancelarId(isSelected ? null : compra.id)}
-                      activeOpacity={0.75}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.historicoData}>
-                          #{compra.id} — {new Date(compra.data_compra).toLocaleDateString('pt-BR')} {new Date(compra.data_compra).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
-                        <Text style={styles.historicoInfo}>
-                          {compra.Qt_Total} paletes · € {Number(compra.valor_total).toFixed(2)}
-                        </Text>
-                        {compra.usuario && <Text style={styles.historicoUsuario}>👤 {compra.usuario}</Text>}
-                      </View>
-                      {isSelected && <FontAwesome name="check-circle" size={22} color="#e53935" style={{ marginLeft: 8 }} />}
-                    </TouchableOpacity>
-                  );
-                })
-              )}
-            </ScrollView>
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12, justifyContent: 'center' }}>
-              <TouchableOpacity style={[styles.button, { backgroundColor: '#888' }]} onPress={() => { setShowCancelarModal(false); setSelectedCancelarId(null); }}>
-                <Text style={styles.buttonText}>Fechar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton, (!selectedCancelarId || !!cancelandoId) && { opacity: 0.4 }]}
-                onPress={handleCancelarCompra}
-                disabled={!selectedCancelarId || !!cancelandoId}
-              >
-                {cancelandoId
-                  ? <ActivityIndicator size="small" color="white" />
-                  : <><FontAwesome name="ban" size={14} color="white" style={{ marginRight: 6 }} /><Text style={styles.buttonText}>Confirmar Cancelamento</Text></>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </ImageBackground>
   );
 }
