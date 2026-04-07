@@ -82,7 +82,7 @@ export default function HomeScreen() {
     justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 100,
+    paddingBottom: 40,
   },
   buttonContainer: {
     width: '100%',
