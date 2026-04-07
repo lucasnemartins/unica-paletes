@@ -53,6 +53,7 @@ export default function HomeScreen() {
       try {
         setLoading(true);
         const response: AxiosResponse<any[]> = await axios.get(`${API_URL}/api/pallets`);
+        const ordemDesejada = ['EB', 'EE', 'PC', 'TE', 'AM', 'DD'];
         const fetchedPallets: Pallet[] = response.data.map(pallet => ({
           Cd_Pallet: pallet.Cd_Pallet,
           Nm_Pallet: pallet.Nm_Pallet,
@@ -60,7 +61,11 @@ export default function HomeScreen() {
           Valor: null,
           UnitValue: pallet.Vl_Unitario,
         }));
-        setPallets(fetchedPallets);
+        const ordenados = ordemDesejada
+          .map(code => fetchedPallets.find(p => p.Cd_Pallet === code))
+          .filter(Boolean) as Pallet[];
+        const restantes = fetchedPallets.filter(p => !ordemDesejada.includes(p.Cd_Pallet));
+        setPallets([...ordenados, ...restantes]);
       } catch (error) {
         console.error('Erro ao buscar pallets:', error);
         Alert.alert('Erro', 'Falha ao buscar pallets do servidor. Verifique sua conexão e tente novamente.');
