@@ -285,6 +285,10 @@ export default function HomeScreen() {
       Alert.alert('Sucesso', `Compra #${selectedCancelarId} cancelada. Estoque revertido.`);
       setSelectedCancelarId(null);
       setShowCancelarModal(false);
+      setPallets(prev => prev.map(p => ({ ...p, Qt: null, Valor: null })));
+      setPendingPhotos([]);
+      setPhotos([]);
+      setPurchaseId(null);
       fetchHistorico();
     } catch (err: any) {
       Alert.alert('Erro', err.response?.data?.error || 'Falha ao cancelar compra.');
