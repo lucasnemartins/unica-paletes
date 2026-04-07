@@ -47,6 +47,8 @@ export default function HomeScreen() {
   const [fotosHistorico, setFotosHistorico] = useState<string[]>([]);
   const [loadingFotos, setLoadingFotos] = useState(false);
   const [fotoExpandida, setFotoExpandida] = useState<string | null>(null);
+  const [showCancelarModal, setShowCancelarModal] = useState(false);
+  const [cancelandoId, setCancelandoId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchPallets = async () => {
@@ -271,6 +273,36 @@ export default function HomeScreen() {
     }
   };
 
+  const handleCancelarCompra = async (idCompra: number) => {
+    Alert.alert(
+      'Cancelar Compra',
+      `Confirmas o cancelamento da compra #${idCompra}?\n\nSerão inseridos registos negativos para reverter o estoque.`,
+      [
+        { text: 'Não', style: 'cancel' },
+        {
+          text: 'Sim, cancelar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setCancelandoId(idCompra);
+              const nomeParts = [user?.firstName, user?.lastName].filter(Boolean);
+              const primaryEmail = user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress || user?.emailAddresses?.[0]?.emailAddress;
+              const nomeUsuario = nomeParts.length > 0 ? nomeParts.join(' ') : (primaryEmail || user?.id || 'Desconhecido');
+              await axios.post(`${API_URL}/api/compras/${idCompra}/cancelar`, { usuario: nomeUsuario });
+              Alert.alert('Sucesso', `Compra #${idCompra} cancelada. Estoque revertido.`);
+              setShowCancelarModal(false);
+              fetchHistorico();
+            } catch (err: any) {
+              Alert.alert('Erro', err.response?.data?.error || 'Falha ao cancelar compra.');
+            } finally {
+              setCancelandoId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const fetchFotosHistorico = async (idCompra: number) => {
     try {
       setLoadingFotos(true);
@@ -457,6 +489,10 @@ export default function HomeScreen() {
               <FontAwesome name="camera" size={20} color="white" style={{ marginRight: 5 }} />
               <Text style={styles.buttonText}>Foto ({pendingPhotos.length}/3)</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => { fetchHistorico(); setShowCancelarModal(true); }} disabled={loading}>
+              <FontAwesome name="ban" size={18} color="white" style={{ marginRight: 5 }} />
+              <Text style={styles.buttonText}>Cancelar</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={[styles.button, styles.clearButton]} onPress={handleLimpar} disabled={loading}>
               <FontAwesome name="trash" size={18} color="white" />
             </TouchableOpacity>
@@ -592,6 +628,53 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {/* Modal Cancelar Compra */}
+      <Modal visible={showCancelarModal} animationType="slide" transparent onRequestClose={() => setShowCancelarModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Cancelar Compra</Text>
+              <TouchableOpacity onPress={() => setShowCancelarModal(false)}>
+                <FontAwesome name="times" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ color: '#666', marginBottom: 10, paddingHorizontal: 4 }}>
+              Seleciona a compra a cancelar. Serão inseridos registos negativos.
+            </Text>
+            <ScrollView>
+              {loadingHistorico ? (
+                <ActivityIndicator size="large" color="#b8934b" style={{ marginVertical: 20 }} />
+              ) : (
+                historico.map((compra) => (
+                  <TouchableOpacity
+                    key={`cancelar-${compra.id}-${compra.fonte}`}
+                    style={[styles.historicoItem, { borderLeftWidth: 4, borderLeftColor: compra.fonte === 'historico' ? '#ff9800' : '#b8934b' }]}
+                    onPress={() => handleCancelarCompra(compra.id)}
+                    disabled={cancelandoId === compra.id}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.historicoData}>
+                        #{compra.id} — {new Date(compra.data_compra).toLocaleDateString('pt-BR')} {new Date(compra.data_compra).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                      <Text style={styles.historicoInfo}>
+                        {compra.Qt_Total} paletes · € {Number(compra.valor_total).toFixed(2)}
+                      </Text>
+                      {compra.usuario && <Text style={styles.historicoUsuario}>👤 {compra.usuario}</Text>}
+                    </View>
+                    {cancelandoId === compra.id
+                      ? <ActivityIndicator size="small" color="#e53935" />
+                      : <FontAwesome name="ban" size={18} color="#e53935" />}
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+            <TouchableOpacity style={[styles.button, { marginTop: 12, alignSelf: 'center' }]} onPress={() => setShowCancelarModal(false)}>
+              <Text style={styles.buttonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ImageBackground>
   );
 }
@@ -693,6 +776,9 @@ const styles = StyleSheet.create({
     height: 100,
     margin: 5,
     borderRadius: 8,
+  },
+  cancelButton: {
+    backgroundColor: '#e53935',
   },
   clearButton: {
     backgroundColor: '#c0392b',

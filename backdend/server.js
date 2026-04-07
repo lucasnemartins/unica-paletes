@@ -680,6 +680,102 @@ app.get('/api/health', (req, res) => {
     }
   });
 
+  // Cancelar compra — insere registos negativos para reverter
+  app.post('/api/compras/:id/cancelar', async (req, res) => {
+    const idCompra = parseInt(req.params.id);
+    const { usuario } = req.body;
+    const nomeUsuario = usuario || 'Desconhecido';
+
+    try {
+      // Buscar itens da compra original (sessão atual ou histórico)
+      let [itens] = await db.execute(
+        'SELECT Cd_Pallet, Nm_Pallet, Qt_Pallet, Vl, Data_Compra FROM tb_compra WHERE id_compra = ?',
+        [idCompra]
+      );
+      let fonte = 'atual';
+      if (itens.length === 0) {
+        [itens] = await db.execute(
+          'SELECT Cd_Pallet, Nm_Pallet, Qt_Pallet, Vl, Data_Compra FROM tb_compra_historico WHERE id_compra = ?',
+          [idCompra]
+        );
+        fonte = 'historico';
+      }
+      if (itens.length === 0) {
+        return res.status(404).json({ error: 'Compra não encontrada.' });
+      }
+
+      const now = new Date();
+      const pad = n => n.toString().padStart(2, '0');
+      const dataCancelamento = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+      await db.beginTransaction();
+
+      // Buscar próximo id_compra para o cancelamento
+      const [[{ maxId }]] = await db.execute('SELECT MAX(id_compra) AS maxId FROM tb_compra');
+      const idCancelamento = (maxId || 0) + 1;
+
+      let qtTotalCancelada = 0;
+      let valorTotalCancelado = 0;
+
+      for (const item of itens) {
+        const qtNeg = -Math.abs(item.Qt_Pallet);
+        const vlNeg = -Math.abs(parseFloat(item.Vl));
+        qtTotalCancelada += Math.abs(item.Qt_Pallet);
+        valorTotalCancelado += Math.abs(parseFloat(item.Vl));
+
+        // Inserir linha negativa em tb_compra
+        await db.execute(
+          'INSERT INTO tb_compra (id_compra, Cd_Pallet, Nm_Pallet, Data_Compra, Qt_Pallet, Vl, usuario) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [idCancelamento, item.Cd_Pallet, item.Nm_Pallet, dataCancelamento, qtNeg, vlNeg, nomeUsuario]
+        );
+
+        // Reverter estoque
+        const [estoque] = await db.execute('SELECT Qt_Estoque, Vl_Unitario FROM tb_Estoque WHERE Cd_Pallet = ?', [item.Cd_Pallet]);
+        if (estoque.length > 0) {
+          const novaQt = Math.max(0, estoque[0].Qt_Estoque - Math.abs(item.Qt_Pallet));
+          const novoValor = novaQt * parseFloat(estoque[0].Vl_Unitario);
+          await db.execute(
+            'UPDATE tb_Estoque SET Qt_Estoque = ?, Valor_Estoque = ? WHERE Cd_Pallet = ?',
+            [novaQt, novoValor, item.Cd_Pallet]
+          );
+        }
+      }
+
+      // Inserir linha negativa em tb_compra_consolidado
+      await db.execute(
+        'INSERT INTO tb_compra_consolidado (data_compra, Qt_Total, valor_total, usuario) VALUES (?, ?, ?, ?)',
+        [dataCancelamento, -qtTotalCancelada, -valorTotalCancelado, nomeUsuario]
+      );
+
+      await db.commit();
+
+      // Snapshot no tb_fluxo_caixa após cancelamento
+      try {
+        const [[{ totalComprasSnap }]] = await db.execute('SELECT IFNULL(SUM(valor_total),0) AS totalComprasSnap FROM tb_compra_consolidado');
+        const [[{ totalCaixaSnap }]] = await db.execute('SELECT IFNULL(SUM(Caixa_Atual),0) AS totalCaixaSnap FROM tb_fluxo_caixa');
+        const totalComprasVal = parseFloat(totalComprasSnap);
+        const totalCaixaVal = parseFloat(totalCaixaSnap);
+        const saldoSnap = totalCaixaVal - totalComprasVal;
+        const [resultFC] = await db.execute(
+          'INSERT INTO tb_fluxo_caixa (Caixa_Atual, Data_Caixa, usuario, Compra, Diferenca) VALUES (?, ?, ?, ?, ?)',
+          [0, dataCancelamento, nomeUsuario, totalComprasVal, saldoSnap]
+        );
+        await db.execute(
+          'INSERT INTO tb_caixa_historico (id, Caixa_Atual, Data_Caixa, usuario, Compra, Diferenca) VALUES (?, ?, ?, ?, ?, ?)',
+          [resultFC.insertId, 0, dataCancelamento, nomeUsuario, totalComprasVal, saldoSnap]
+        );
+      } catch (fcErr) {
+        console.error('Erro ao registar cancelamento no fluxo de caixa:', fcErr);
+      }
+
+      res.json({ message: `Compra #${idCompra} cancelada com sucesso. Registos negativos inseridos.`, fonte });
+    } catch (error) {
+      await db.rollback();
+      console.error('BACKEND: Erro ao cancelar compra:', error);
+      res.status(500).json({ error: 'Erro ao cancelar compra.', details: error.message });
+    }
+  });
+
   // Configuração do multer otimizada
   const storage = multer.memoryStorage();
   const upload = multer({ 
